@@ -1,3 +1,6 @@
+# Personal sql data will be stored here
+data/ 
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
