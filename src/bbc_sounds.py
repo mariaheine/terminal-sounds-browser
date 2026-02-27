@@ -92,7 +92,8 @@ class BBCSounds:
         else:
             # TODO handle
             print("failed")
-            sys.exit(1)
+            self.logger.error(f"Failed to get sounds data for category {self.category}, status code: {response.status_code}")
+            # sys.exit(1)
 
     # TODO move to some neat utils class
     def save_example_sound_json(self, json_obj):
@@ -157,6 +158,9 @@ class BBCSounds:
         self.database.execute(query)
         self.database.commit()
 
+        if not data:
+            self.logger.error("Can't cache missing sounds data, why did that happen?")
+
         for key, value in data.items():
             sound_id = key
             query = """
@@ -198,11 +202,6 @@ class BBCSounds:
                 self.database.execute(query, params, silent=True)
                 self.database.commit()
         
-        query = "SELECT * FROM sounds"
-        cursor = self.database.execute(query)
-        rows = cursor.fetchall()
-        for row in rows[:5]:
-            self.logger.info(f"{row}")
 
         # query = "SELECT * FROM categories"
         # cursor = self.database.execute(query)
@@ -269,11 +268,11 @@ class BBCSounds:
 
                 return True
             else:
-                self.logger.warning(f"Category {self.category} has problems with last_updated in sounds table")
-
-            return False;
+                self.logger.error(f"Category {self.category} has problems with last_updated in sounds table")
+                return False;
         
         except sqlite3.OperationalError:
+            self.logger.error("sqlite operational error in check_sounds_cache_for_category")
             return False
 
     def update_sounds_data(self):
@@ -289,30 +288,35 @@ class BBCSounds:
         cursor = self.database.execute(query,params)
         self.logger.info(f"{cursor.fetchone()}")
 
-        query = """
-            SELECT * FROM sound_categories
-            """
+        # query = """
+        #     SELECT * FROM sound_categories
+        #     """
+        # cursor = self.database.execute(query)
+        # for row in cursor:
+        #     self.logger.info(f"{row}")
+
+        # query = """
+        #     SELECT COUNT(*) FROM sound_categories
+        #     WHERE category_id = 21
+        #     """
+        # cursor = self.database.execute(query)
+        # self.logger.info(f"{cursor.fetchone()}")
+        #
+        # query = """
+        #     SELECT COUNT(*) FROM sound_categories
+        #     WHERE category_id = (SELECT id FROM categories WHERE name = ?)
+        #     """
+        # params = (category,)
+        # cursor = self.database.execute(query,params)
+        # self.logger.info(f"{cursor.fetchone()}")
+        query = "SELECT duration FROM sounds "
         cursor = self.database.execute(query)
-        for row in cursor:
+        rows = cursor.fetchall()
+        for row in rows[:5]:
             self.logger.info(f"{row}")
 
         query = """
-            SELECT COUNT(*) FROM sound_categories
-            WHERE category_id = 21
-            """
-        cursor = self.database.execute(query)
-        self.logger.info(f"{cursor.fetchone()}")
-
-        query = """
-            SELECT COUNT(*) FROM sound_categories
-            WHERE category_id = (SELECT id FROM categories WHERE name = ?)
-            """
-        params = (category,)
-        cursor = self.database.execute(query,params)
-        self.logger.info(f"{cursor.fetchone()}")
-
-        query = """
-            SELECT description
+            SELECT s.id, s.description, s.duration
             FROM sounds s
             JOIN sound_categories sc ON sc.sound_id = s.id
             JOIN categories c ON sc.category_id = c.id
@@ -322,14 +326,17 @@ class BBCSounds:
 
         cursor = self.database.execute(query, params)
 
-        results = cursor.fetchall()
+        sounds_data = cursor.fetchall()
         self.logger.debug(f"length:")
 
 
-        for row in results[:5]:
+        for row in sounds_data[:5]:
             self.logger.debug(f"{row}")
 
-        return results
+        sounds = [f"{row[0]}|{row[1]}|{row[2]}" for row in sounds_data]
+        # sounds = {row[1]: row[0] for row in sounds_data}
+
+        return sounds
                 
 
     def download_sound(self, sound_id):

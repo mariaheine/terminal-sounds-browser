@@ -33,7 +33,7 @@ def main():
     bbc_db_path = cache_path / "database" / "bbc.db"
 
     logger = Logger(cache_path)
-
+ 
     logger.info
     
     if args.command == "get_bbc_categories":
@@ -45,12 +45,12 @@ def main():
     elif args.command == "get_bbc_sounds":
         print(f"got cat: {args.category} {args.size}")
         bbc_sounds = BBCSounds(logger, bbc_db_path, args.category, args.size)
-        sounds = bbc_sounds.get_sounds()
-        #for key, val in sounds.items():
-        #    print(f"{key} {val}")
+        sounds_list = bbc_sounds.get_sounds()
+        for val in sounds_list:
+           print(f"{val}")
 
-        for val, key in sounds:
-            print(val)
+        # for key, val in sounds_list.items():
+        #     print(f"{key} {val}")
     
     else: 
         print(f"unknown command {args.command}")

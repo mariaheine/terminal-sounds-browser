@@ -17,7 +17,7 @@ source "$PROJECT_ROOT/.venv/bin/activate"
 export PYTHONPATH="${PYTHONPATH:-}:$PROJECT_ROOT"
 echo "🔧 PYTHONPATH: $PYTHONPATH"
 
-# Clear the log file
+# Clear the log file{"criteria":{"from":0,"size":20,"tags":null,"categories":["Aircraft"],"durations":null,"continents":null,"sortBy":null,"source":null,"recordist":null,"habitat":null}}
 mkdir -p "${HOME}/.cache/terminal-effect-browser/logs"
 > "${HOME}/.cache/terminal-effect-browser/logs/last.log"
 
@@ -60,7 +60,8 @@ open_fzf_menu() {
 
   local data_array="${config[data_array]:-}"
   local use_multi="${config[use_multi]:-false}"
-  local delimiter="${config[delimiter]:-' '}"
+  local delimiter="${config[delimiter]:-''}"
+  local with_nth="${config[with_nth]:-1}"
   local list_label="${config[list_label]:-'Listed Items'}"
   local info_label="${config[info_label]:-'Info'}"
   local info_content="${config[info_content]:-'Info Content'}"
@@ -89,8 +90,8 @@ open_fzf_menu() {
     --color 'input-border:#996666,input-label:#ffcccc'
     --color 'header-border:#6699cc,header-label:#99ccff'
     --layout reverse
-    --with-nth=1 # TODO what was this
     --delimiter="$delimiter"
+    --with-nth="${with_nth}" # TODO what was this
     --info=inline
   )
 
@@ -98,6 +99,10 @@ open_fzf_menu() {
   if [[ "$use_multi" == "true" ]]; then
     fzf_args+=(--multi)
   fi
+
+  # if [[ -n "${with_nth}" ]]; then
+  #   fzf_args+=(--with-nth="${with_nth}")
+  # fi
 
   # Convert listed_elements to a single multiline string
   # TODO This is pretty cool, make notes on printg and how the array is being passed here
@@ -122,6 +127,7 @@ open_main_menu() {
     "$menu_option_4"
   )
 
+  
   declare -A menu_config=(
     [data_array]='menu_elements'
     [use_multi]=false
@@ -163,9 +169,22 @@ open_main_menu() {
       local category_name=$(echo "${category}" | cut -d' ' -f1)
       local category_size=$(echo "${category}" | cut -d' ' -f2)
 
-      local sounds=$(python3 -m src.main get_bbc_sounds "${category_name}" "${category_size}")
+      local bbc_sounds=$(python3 -m src.main get_bbc_sounds "${category_name}" "${category_size}")
 
-      echo $sounds
+      declare -A bbc_sounds_config=(
+        [data_array]='bbc_sounds'
+        [use_multi]=false
+        [preview_content]='echo "Category: {1}\nSize: {2}\nDuration: {3}\nComment: No I do not know how to get rid of the trailing | sign,\nI have already spent 2h on this thing and I decided\nto consider that a feature not a bug.\nConsider a PR if that annoys u <3"'
+        [delimiter]='|'
+        [info_label]='Info'
+        [info_content]='[Arrows] Navigate [Enter] Confirm selected category.'
+        [list_label]='BBC Sound Effect Categories'
+        [preview_label]='Category Info'
+        [with_nth]=2
+      )
+
+      local category=$(open_fzf_menu 'bbc_sounds_config')
+      # echo $sounds
       ;;
     *)
       echo "derp menu option: ${selected}"

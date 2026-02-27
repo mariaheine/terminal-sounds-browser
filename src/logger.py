@@ -28,6 +28,9 @@ class Logger:
     def warning(self, message):
         self._write("[🎱 WARNING]", message)
 
+    def error(self, message):
+        self._write("[🧨 ERROR]", message)
+
     def explain_query(self, query: str, rows: List[Tuple]):
         msg = "\n- Query:\n"
         msg += query
