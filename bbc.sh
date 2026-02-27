@@ -3,7 +3,25 @@
 set -euo pipefail
 
 # todo: check python installation and version, check venv, check if things are installed
-source ./.venv/bin/activate
+# source ./.venv/bin/activate
+
+# Finde das Projekt-Root (wo dieses Skript liegt)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$SCRIPT_DIR"
+
+echo "📁 Projekt-Root: $PROJECT_ROOT"
+
+# Aktiviere venv
+source "$PROJECT_ROOT/.venv/bin/activate"
+
+export PYTHONPATH="${PYTHONPATH:-}:$PROJECT_ROOT"
+echo "🔧 PYTHONPATH: $PYTHONPATH"
+
+# Clear the log file
+mkdir -p "${HOME}/.cache/terminal-effect-browser/logs"
+> "${HOME}/.cache/terminal-effect-browser/logs/last.log"
+
+echo $0
 
 check_fzf() {
 
@@ -35,7 +53,7 @@ check_fzf() {
 
 check_fzf
 
-open_fzf_menu() { 
+open_fzf_menu() {
 
   local config_name="$1"
   local -n config="$config_name"
@@ -88,7 +106,7 @@ open_fzf_menu() {
   local selection=$(echo "$fzf_input" | fzf "${fzf_args[@]}")
 
   echo $selection
-}
+} 
 
 open_main_menu() {
 
@@ -127,7 +145,7 @@ open_main_menu() {
   case "${selected}" in
     "$menu_option_1")
       
-      local bbc_categories=$(python3 src/bbc_categories.py get_bbc_categories)
+      local bbc_categories=$(python3 -m src.main get_bbc_categories)
 
       declare -A bbc_categories_config=(
         [data_array]='bbc_categories'
@@ -142,11 +160,16 @@ open_main_menu() {
 
       local category=$(open_fzf_menu 'bbc_categories_config')
 
-      echo "${category}"
+      local category_name=$(echo "${category}" | cut -d' ' -f1)
+      local category_size=$(echo "${category}" | cut -d' ' -f2)
+
+      local sounds=$(python3 -m src.main get_bbc_sounds "${category_name}" "${category_size}")
+
+      echo $sounds
       ;;
     *)
-      echo "derp"
-      mpv --no-video "./_NHU05104088.mp3"
+      echo "derp menu option: ${selected}"
+      #mpv --no-video "./_NHU05104088.mp3"
       ;;
    esac
 }
