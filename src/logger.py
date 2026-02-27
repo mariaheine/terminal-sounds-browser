@@ -33,5 +33,5 @@ class Logger:
         msg += query
         msg += "\n- Plan:\n"
         for row in rows:
-            msg += f"{row}"
+            msg += f"{row}\n"
         self._write("[🧭 QUERY PLAN]", msg)

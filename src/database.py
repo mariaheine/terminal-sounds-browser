@@ -9,11 +9,11 @@ class Database:
         self.logger = logger
         self.verbose = verbose
 
-    def query(self, query, params = None):
+    def execute(self, query, params = None, silent=False):
 
         cursor = self.conn.cursor()
 
-        if self.verbose:
+        if self.verbose and not silent:
             explain_query = f"EXPLAIN QUERY PLAN {query}"
             
             if params:
@@ -31,5 +31,8 @@ class Database:
             cursor.execute(query)
             
         return cursor
+
+    def commit(self):
+        self.conn.commit()
 
 

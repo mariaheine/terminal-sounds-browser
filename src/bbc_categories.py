@@ -191,13 +191,8 @@ class BBCCategories:
             
 
     def get_cached_categories(self):
-        #with sqlite3.connect(self.db_path) as conn:
-         #   cursor = conn.cursor()
-          #  cursor.execute("SELECT name, size FROM categories ORDER BY name")
-           # categories = {name: size for name, size in cursor.fetchall()}
-            #return categories
         query = "SELECT name, size FROM categories ORDER BY name"
-        cursor = self.database.query(query)
+        cursor = self.database.execute(query)
         categories = {name: size for name, size in cursor.fetchall()}
         return categories
             
