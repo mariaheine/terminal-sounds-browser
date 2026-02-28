@@ -12,8 +12,15 @@ def main():
     parser = argparse.ArgumentParser(description="Sound Effect Browser")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    # TODO make notes on python args parsers
     # bbc categories subparser
     bbc_categories_parser = subparsers.add_parser("get_bbc_categories")
+
+    toggle_favourite_parser = subparsers.add_parser("toggle_favourite")
+    toggle_favourite_parser.add_argument("sound_id")
+
+    is_favourite_parser = subparsers.add_parser("is_favourite")
+    is_favourite_parser.add_argument("sound_id")
 
     # bbc sounds subparser
     bbc_sounds_parser = subparsers.add_parser("get_bbc_sounds")
@@ -34,8 +41,6 @@ def main():
 
     logger = Logger(cache_path)
  
-    logger.info
-    
     if args.command == "get_bbc_categories":
         bbc_categories = BBCCategories(logger, bbc_db_path)
         categories = bbc_categories.get_categories()
@@ -43,14 +48,16 @@ def main():
             print(f"{key} {val}")
 
     elif args.command == "get_bbc_sounds":
-        print(f"got cat: {args.category} {args.size}")
         bbc_sounds = BBCSounds(logger, bbc_db_path, args.category, args.size)
         sounds_list = bbc_sounds.get_sounds()
         for val in sounds_list:
            print(f"{val}")
 
-        # for key, val in sounds_list.items():
-        #     print(f"{key} {val}")
+    elif args.command == "toggle_favourite":
+        print(f"meow! oioioioioi {args.sound_id}")
+
+    elif args.command == "is_favourite":
+        print("1")
     
     else: 
         print(f"unknown command {args.command}")

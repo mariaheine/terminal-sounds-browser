@@ -2,26 +2,17 @@
 
 set -euo pipefail
 
-# todo: check python installation and version, check venv, check if things are installed
-# source ./.venv/bin/activate
-
 # Finde das Projekt-Root (wo dieses Skript liegt)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$SCRIPT_DIR"
+echo "📁 Projekt-Root: $SCRIPT_DIR"
 
-echo "📁 Projekt-Root: $PROJECT_ROOT"
-
-# Aktiviere venv
-source "$PROJECT_ROOT/.venv/bin/activate"
-
-export PYTHONPATH="${PYTHONPATH:-}:$PROJECT_ROOT"
+source "$SCRIPT_DIR/.venv/bin/activate"
+export PYTHONPATH="${PYTHONPATH:-}:$SCRIPT_DIR"
 echo "🔧 PYTHONPATH: $PYTHONPATH"
 
-# Clear the log file{"criteria":{"from":0,"size":20,"tags":null,"categories":["Aircraft"],"durations":null,"continents":null,"sortBy":null,"source":null,"recordist":null,"habitat":null}}
+# Clear the log file
 mkdir -p "${HOME}/.cache/terminal-effect-browser/logs"
 > "${HOME}/.cache/terminal-effect-browser/logs/last.log"
-
-echo $0
 
 check_fzf() {
 
@@ -47,11 +38,24 @@ check_fzf() {
     echo "on Ubuntu with apt you will def get an outdated one"
     return 1
   else
-    echo "🍰 Neat, yor fzf version is $user_full_version, min 0.48+ required, proceeding."
+    echo "🍰 fzf version: $user_full_version - Neat! Min 0.48+ is required, proceeding."
   fi
 }
 
 check_fzf
+
+toggle_favourite() {
+  echo "fav getoggled"
+  echo $sound_id
+}
+
+# TODO
+if [ -n "$BASH_VERSION" ]; then
+    export -f toggle_favourite
+elif [ -n "$ZSH_VERSION" ]; then
+    typeset -g -U toggle_favourite
+fi
+
 
 open_fzf_menu() {
 
@@ -67,6 +71,7 @@ open_fzf_menu() {
   local info_content="${config[info_content]:-'Info Content'}"
   local preview_label="${config[preview_label]:-'Preview'}"
   local preview_content="${config[preview_content]:-'No preview set'}"
+  local sample_list="${config[sample_list]:-false}"
 
   local -n listed_elements="$data_array"
   
@@ -81,7 +86,6 @@ open_fzf_menu() {
     --list-label "'° ${list_label} °'"
     --header="$info_content"
     --header-label "'° ${info_label} °'"
-    --preview="$preview_content"
     --preview-label "'° ${preview_label} °'"
     --preview-window=right:40%
     --color 'border:#aaaaaa,label:#cccccc'
@@ -98,6 +102,38 @@ open_fzf_menu() {
   # Add --multi conditionally
   if [[ "$use_multi" == "true" ]]; then
     fzf_args+=(--multi)
+  fi
+
+  if [[ "$sample_list" == "true" ]]; then
+  
+
+    local preview_cmd='
+      id=$(echo {} | cut -d"|" -f1)
+      fav=$(python3 -m src.main is_favourite "$id")
+      if [[ "$fav" == "1" ]]; then
+        echo "⭐ FAVORIT"
+      else
+        echo "❌ Nicht favorisiert"
+      fi
+      echo "ID: $id"
+      echo "Drücke Ctrl-F zum Togglen"
+    '
+
+
+    # TODO
+
+    fzf_args+=(--bind 'ctrl-f:execute(
+        sound_id=$(echo {} | cut -d"|" -f1)
+        python3 -m src.main toggle_favourite "${sound_id}"
+        echo "meow favvvv"
+      )')
+    fzf_args+=(--bind 'ctrl-f:+refresh-preview')
+    fzf_args+=(--preview "$preview_cmd")
+
+  else
+
+    fzf_args+=(--preview="$preview_content")
+
   fi
 
   # if [[ -n "${with_nth}" ]]; then
@@ -173,17 +209,18 @@ open_main_menu() {
 
       declare -A bbc_sounds_config=(
         [data_array]='bbc_sounds'
-        [use_multi]=false
+        [use_multi]=true
         [preview_content]='echo "Category: {1}\nSize: {2}\nDuration: {3}\nComment: No I do not know how to get rid of the trailing | sign,\nI have already spent 2h on this thing and I decided\nto consider that a feature not a bug.\nConsider a PR if that annoys u <3"'
         [delimiter]='|'
         [info_label]='Info'
         [info_content]='[Arrows] Navigate [Enter] Confirm selected category.'
-        [list_label]='BBC Sound Effect Categories'
+        [list_label]="BBC Sound Effects for ${category_name} category"
         [preview_label]='Category Info'
         [with_nth]=2
+        [sample_list]=true
       )
 
-      local category=$(open_fzf_menu 'bbc_sounds_config')
+      local sounds=$(open_fzf_menu 'bbc_sounds_config')
       # echo $sounds
       ;;
     *)

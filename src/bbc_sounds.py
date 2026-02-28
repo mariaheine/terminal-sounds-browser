@@ -91,7 +91,6 @@ class BBCSounds:
             # return list(sound_db.items())[0]
         else:
             # TODO handle
-            print("failed")
             self.logger.error(f"Failed to get sounds data for category {self.category}, status code: {response.status_code}")
             # sys.exit(1)
 
@@ -248,8 +247,6 @@ class BBCSounds:
             if count == 0:
                 self.logger.info(f"BBC 'sounds' table was empty for category {self.category}")
                 return False;
-
-            self.logger.debug(f"Sounds length {count}")
 
             if last_updated:
                 query = """
