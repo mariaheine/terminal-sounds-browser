@@ -4,41 +4,36 @@ import zipfile
 import sqlite3
 import json
 from pathlib import Path
+from typing import Dict
 from src.logger import Logger
 from src.database import Database
 
 class BBCSounds:
-    def __init__(self, logger: Logger, db_path: Path, category: str, size: int):
+    def __init__(self, logger: Logger, db_path: Path, category: str, size: int, headers: dict[str,str]):
         self.db_path = db_path
+        self.headers = headers
         self.category = category
         self.size = size
         self.logger = logger
         self.database = Database(logger, db_path, verbose=True)
         self.bbc_url_api = "https://sound-effects-api.bbcrewind.co.uk/"
-        self.bbc_url_media = "http://sound-effects-media.bbcrewind.co.uk/"
-        self.sounds_search_endpoint = "api/sfx/search"
-        self.mp3_endpoint = "mp3/"
-        self.wav_endpoint = "zip/"
-        self.headers = {
-            f"User-Agent": "bbc-sound-browser/{version} (educational project; respectful scraper; browsing samples and downloading favourites; no bulk download)",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        }
+        self.bbc_sounds_search_endpoint = "api/sfx/search"
 
-    def download_sounds_data_for_category(self):
 
-        self.logger.info(f"Downloading BBC sounds info for category {self.category} of size {self.size}")
+    def download_sounds_data_for_category(self, category):
+
+        self.logger.info(f"Downloading BBC sounds info for category {category} of size {self.size}")
 
         payload = {
             "criteria": {
-                "categories": [ self.category ],
+                "categories": [ category ],
                 "from": 0,
                 "size": self.size,
             }
         }
 
         response = requests.post(
-            f"{self.bbc_url_api}{self.sounds_search_endpoint}",
+            f"{self.bbc_url_api}{self.bbc_sounds_search_endpoint}",
             json=payload,
             headers=self.headers,
         )
@@ -103,9 +98,13 @@ class BBCSounds:
         json_path.write_text(json_text)
 
 
-    def cache_sounds_data(self, data):
+    def cache_sounds_data(self, category, data):
 
-        self.logger.info(f"Caching BBC sounds info for category {self.category}")
+        if category == "":
+            self.logger.error("Empty category name, can't download sounds data.")
+            return None
+
+        self.logger.info(f"Caching BBC sounds info for category {category}")
 
         # Table for individual bbc sound effect data
         # Id is taken from the original sound id, see example json
@@ -272,10 +271,6 @@ class BBCSounds:
             self.logger.error("sqlite operational error in check_sounds_cache_for_category")
             return False
 
-    def update_sounds_data(self):
-        sound_db = self.download_sounds_data_for_category()
-        self.cache_sounds_data(sound_db)
-
     def get_sounds_data(self, category):
 
         self.logger.info(f"Getting bbc sounds data for category {self.category}")
@@ -343,7 +338,7 @@ class BBCSounds:
         save_dir.mkdir(parents=True, exist_ok=True) 
         save_path = save_dir / f"{sound_id}.zip"
 
-        url = f"{self.bbc_url_media}{self.wav_endpoint}{sound_id}.wav.zip"
+        url = f"{self.bbc_url_media}{self.bbc_wav_endpoint}{sound_id}.wav.zip"
 
         response = requests.get(url, stream=True)
         response.raise_for_status()  # Check for errors
@@ -364,10 +359,14 @@ class BBCSounds:
 
         print(f"✅ Downloaded to {save_path}")
 
+    def update_sounds_data(self, category):
+        sound_db = self.download_sounds_data_for_category(category)
+        self.cache_sounds_data(category, sound_db)
+
     def get_sounds(self):
 
         if not self.check_sounds_cache_for_category():
-            self.update_sounds_data()
+            self.update_sounds_data(self.category)
 
         return self.get_sounds_data(self.category)
 

@@ -72,6 +72,9 @@ open_fzf_menu() {
   local preview_label="${config[preview_label]:-'Preview'}"
   local preview_content="${config[preview_content]:-'No preview set'}"
   local sample_list="${config[sample_list]:-false}"
+  local sound_category="${config[sound_category]:-''}"
+
+  export SOUND_CATEGORY=$sound_category
 
   local -n listed_elements="$data_array"
   
@@ -128,6 +131,10 @@ open_fzf_menu() {
         echo "meow favvvv"
       )')
     fzf_args+=(--bind 'ctrl-f:+refresh-preview')
+    fzf_args+=(--bind 'ctrl-d:execute(
+        sound_id=$(echo {} | cut -d"|" -f1)
+        python3 -m src.main bbc_download_preview_sound "${sound_id}" "${SOUND_CATEGORY}"
+      )')
     fzf_args+=(--preview "$preview_cmd")
 
   else
@@ -187,7 +194,7 @@ open_main_menu() {
   case "${selected}" in
     "$menu_option_1")
       
-      local bbc_categories=$(python3 -m src.main get_bbc_categories)
+      local bbc_categories=$(python3 -m src.main bbc_get_categories)
 
       declare -A bbc_categories_config=(
         [data_array]='bbc_categories'
@@ -205,7 +212,7 @@ open_main_menu() {
       local category_name=$(echo "${category}" | cut -d' ' -f1)
       local category_size=$(echo "${category}" | cut -d' ' -f2)
 
-      local bbc_sounds=$(python3 -m src.main get_bbc_sounds "${category_name}" "${category_size}")
+      local bbc_sounds=$(python3 -m src.main bbc_get_sounds_data "${category_name}" "${category_size}")
 
       declare -A bbc_sounds_config=(
         [data_array]='bbc_sounds'
@@ -218,6 +225,7 @@ open_main_menu() {
         [preview_label]='Category Info'
         [with_nth]=2
         [sample_list]=true
+        [sound_category]="${category_name}"
       )
 
       local sounds=$(open_fzf_menu 'bbc_sounds_config')
