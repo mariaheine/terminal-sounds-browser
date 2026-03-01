@@ -8,6 +8,7 @@ from src.logger import Logger
 from src.bbc_categories import BBCCategories
 from src.bbc_sounds_data import BBCSounds
 from src.bbc_sound_downloader import BBCSoundDownloader
+from src.constants import SOUNDS_CACHE_DIR
 
 version = "0.1.0"
 
@@ -52,7 +53,7 @@ def main():
     cache_path = Path.home() / ".cache" / "terminal-effect-browser"
     bbc_db_path = cache_path / "database" / "bbc.db"
 
-    logger = Logger(cache_path)
+    logger = Logger()
  
     if args.command == "bbc_get_categories":
         bbc_categories = BBCCategories(logger, bbc_db_path)
@@ -75,9 +76,8 @@ def main():
         print("1")
 
     elif args.command == "bbc_download_preview_sound":
-        bbc_downloader = BBCSoundDownloader(logger, cache_path, bbc_db_path, args.category)
-        filepath = bbc_downloader.download_preview_sound(args.sound_id)
-        print(filepath)
+        bbc_downloader = BBCSoundDownloader(logger, args.category, args.sound_id)
+        bbc_downloader.download_preview_sound()
     
     else: 
         print(f"unknown command {args.command}")

@@ -10,17 +10,21 @@ source "$SCRIPT_DIR/.venv/bin/activate"
 export PYTHONPATH="${PYTHONPATH:-}:$SCRIPT_DIR"
 echo "🔧 PYTHONPATH: $PYTHONPATH"
 
-# Clear the log file
+# clear the log file
+# to just use one and overwrite it on every run
 mkdir -p "${HOME}/.cache/terminal-effect-browser/logs"
 > "${HOME}/.cache/terminal-effect-browser/logs/last.log"
 
-
-export AUTO_MODE_FILE="/tmp/bbc_auto_mode_$$" # TODO $$
+export AUTO_MODE_FILE="/tmp/tsb_auto_mode_$$" # $$ is process id
 echo "false" > "$AUTO_MODE_FILE"
 
+export CURRENT_MPV_PROCESS_PID_FILE="/tmp/tsb_current_mpv_pid_$$"
+echo "" > "$CURRENT_MPV_PROCESS_PID_FILE"
+
+export BBC_MPV_TAG="term-mpv-$$"
 cleanup() {
   rm -f "$AUTO_MODE_FILE"
-  echo "did cleanup"
+  pkill -f "${BBC_MPV_TAG}" # kill running mpv processes 
 }
 trap cleanup EXIT # TODO
 
@@ -51,9 +55,6 @@ check_fzf() {
     echo "🍰 fzf version: $user_full_version - Neat! Min 0.48+ is required, proceeding."
   fi
 }
-
-
-
 
 open_fzf_menu() {
 
@@ -107,22 +108,44 @@ open_fzf_menu() {
 
   if [[ "$sample_list" == "true" ]]; then
 
-    # for i in "${#bindings[@]}"; do
-    #   fzf_args+=bindings[i]
-    # done
-    
     export SOUND_CATEGORY=$sound_category
 
     # TODO
     fzf_args+=(--bind 'ctrl-f:execute(
         sound_id=$(echo {} | cut -d"|" -f1)
         python3 -m src.main toggle_favourite "${sound_id}"
-        echo "meow favvvv"
       )')
     fzf_args+=(--bind 'ctrl-f:+refresh-preview')
     fzf_args+=(--bind 'ctrl-d:execute(
         sound_id=$(echo {} | cut -d"|" -f1)
         python3 -m src.main bbc_download_preview_sound "${sound_id}" "${SOUND_CATEGORY}"
+      )')
+    
+#       if [[ -n "$LAST_MPV_PID" ]] && kill -0 "$LAST_MPV_PID" 2>/dev/null; then
+#   kill "$LAST_MPV_PID" 2>/dev/null  # Sofort, kein Durchsuchen
+# fi
+
+    # These mpv process PID gymnastics were necessary to neatly kill the process in background
+    # So that the fzf window doesnt blick unpleasantly when the main process is blocked
+    fzf_args+=(--bind 'focus:execute(
+
+        last_pid=$( cat "${CURRENT_MPV_PROCESS_PID_FILE}" )
+        kill "${last_pid}" &
+        sound_id=$(echo {} | cut -d"|" -f1)
+        filepath="$HOME"/.cache/terminal-effect-browser/sounds/bbc/"${SOUND_CATEGORY}"/"${sound_id}"
+
+        if [[ -f "${filepath}.mp3" ]] && [[ ! -f "${filepath}.mp3.tmp" ]]; then
+          mpv --no-video --no-terminal --loop=inf --title="${BBC_MPV_TAG}" "${filepath}.mp3" &
+          echo "$!" > '"${CURRENT_MPV_PROCESS_PID_FILE}"'
+        else
+          python3 -m src.main bbc_download_preview_sound "${sound_id}" "${SOUND_CATEGORY}" &
+          (
+            while [[ -f "${filepath}.mp3.tmp" ]] || [[ ! -f "${filepath}.mp3" ]]; do
+              sleep 0.5
+            done
+            mpv --no-video --no-terminal --loop=inf --title="${BBC_MPV_TAG}" "${filepath}.mp3" &
+          ) &
+        fi
       )')
 
     # try with below which uses " and explicit escaping
@@ -134,6 +157,10 @@ open_fzf_menu() {
     #     echo true > $AUTO_MODE_FILE
     #   fi
     # )+refresh-preview")
+
+    # We cold not use the same simple export method as with SOUND_CATEGORY
+    # Because we were only reading it
+    # And we needed read/write here
     fzf_args+=(--bind 'f2:execute(
       if [[ $( cat '"$AUTO_MODE_FILE"' ) == "true" ]]; then
         echo false > '"$AUTO_MODE_FILE"'
@@ -192,10 +219,6 @@ open_main_menu() {
   echo "DEBUG: Array contents: ${menu_elements[@]}" >&2
 
   local selected=$(open_fzf_menu 'menu_config')
-
-  
-  #echo "DEBUG: Selected: '$selected'" >&2
-  #echo $selected
 
   case "${selected}" in
     "$menu_option_1")
@@ -271,7 +294,5 @@ open_main_menu() {
 }
 
 check_fzf
-
-
 open_main_menu
 deactivate
