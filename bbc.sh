@@ -14,6 +14,16 @@ echo "🔧 PYTHONPATH: $PYTHONPATH"
 mkdir -p "${HOME}/.cache/terminal-effect-browser/logs"
 > "${HOME}/.cache/terminal-effect-browser/logs/last.log"
 
+
+export AUTO_MODE_FILE="/tmp/bbc_auto_mode_$$" # TODO $$
+echo "false" > "$AUTO_MODE_FILE"
+
+cleanup() {
+  rm -f "$AUTO_MODE_FILE"
+  echo "did cleanup"
+}
+trap cleanup EXIT # TODO
+
 check_fzf() {
 
   if ! command -v fzf &> /dev/null; then
@@ -42,19 +52,7 @@ check_fzf() {
   fi
 }
 
-check_fzf
 
-toggle_favourite() {
-  echo "fav getoggled"
-  echo $sound_id
-}
-
-# TODO
-if [ -n "$BASH_VERSION" ]; then
-    export -f toggle_favourite
-elif [ -n "$ZSH_VERSION" ]; then
-    typeset -g -U toggle_favourite
-fi
 
 
 open_fzf_menu() {
@@ -73,8 +71,8 @@ open_fzf_menu() {
   local preview_content="${config[preview_content]:-'No preview set'}"
   local sample_list="${config[sample_list]:-false}"
   local sound_category="${config[sound_category]:-''}"
+  # local bindings="${config[bindings]:-()}"
 
-  export SOUND_CATEGORY=$sound_category
 
   local -n listed_elements="$data_array"
   
@@ -91,7 +89,6 @@ open_fzf_menu() {
     --header-label "'° ${info_label} °'"
     --preview-label "'° ${preview_label} °'"
     --preview-window=right:40%:wrap
-    --preview="$preview_content"
     --color 'border:#aaaaaa,label:#cccccc'
     --color 'preview-border:#9999cc,preview-label:#ccccff'
     --color 'list-border:#669966,list-label:#99cc99'
@@ -99,7 +96,7 @@ open_fzf_menu() {
     --color 'header-border:#6699cc,header-label:#99ccff'
     --layout reverse
     --delimiter="$delimiter"
-    --with-nth="${with_nth}" # TODO what was this
+    --with-nth="${with_nth}" # Which element by delimiter goes into the main list
     --info=inline
   )
 
@@ -109,21 +106,12 @@ open_fzf_menu() {
   fi
 
   if [[ "$sample_list" == "true" ]]; then
-  
 
-    # local preview_cmd='
-    #   id=$(echo {} | cut -d"|" -f1)
-    #   description=$(echo {} | cut -d"|" -f2)
-    #   echo "\e[0;97mID: \e[1;37m$id"
-    #   echo "\e[0;97mDescription: \e[1;32m$description"
-    #   echo "\e[0;97mDrücke Ctrl-F zum Togglen"
-    #   echo ""
-    #   
-    #   fav=$(python3 -m src.main is_favourite "$id")
-    #   if [[ "$fav" == "1" ]]; then
-    #     echo "\e[1;37mFAVORIT \e[5m⭐"
-    #   fi
-    # '
+    # for i in "${#bindings[@]}"; do
+    #   fzf_args+=bindings[i]
+    # done
+    
+    export SOUND_CATEGORY=$sound_category
 
     # TODO
     fzf_args+=(--bind 'ctrl-f:execute(
@@ -136,18 +124,34 @@ open_fzf_menu() {
         sound_id=$(echo {} | cut -d"|" -f1)
         python3 -m src.main bbc_download_preview_sound "${sound_id}" "${SOUND_CATEGORY}"
       )')
-    # fzf_args+=(--preview "$preview_cmd")
 
-  # else
+    # try with below which uses " and explicit escaping
+    # when problem in bash or mac
+    # fzf_args+=(--bind "f2:execute(
+    #   if [[ \$(cat $AUTO_MODE_FILE) == \"true\" ]]; then
+    #     echo false > $AUTO_MODE_FILE
+    #   else
+    #     echo true > $AUTO_MODE_FILE
+    #   fi
+    # )+refresh-preview")
+    fzf_args+=(--bind 'f2:execute(
+      if [[ $( cat '"$AUTO_MODE_FILE"' ) == "true" ]]; then
+        echo false > '"$AUTO_MODE_FILE"'
+      else
+        echo true > '"$AUTO_MODE_FILE"'
+      fi
+    )+refresh-preview')
 
-    # fzf_args+=(--preview="$preview_content")
+    preview_content+=';
+      if [[ $( cat '"$AUTO_MODE_FILE"' ) == "true" ]]; then
+        echo ""
+        echo "AUTO MODE IS ON"
+      fi
+    '
 
   fi
-
-    # fzf_args+=(--preview="$preview_content")
-  # if [[ -n "${with_nth}" ]]; then
-  #   fzf_args+=(--with-nth="${with_nth}")
-  # fi
+    
+  fzf_args+=(--preview "$preview_content")
 
   # Convert listed_elements to a single multiline string
   # TODO This is pretty cool, make notes on printg and how the array is being passed here
@@ -223,24 +227,21 @@ open_main_menu() {
         [data_array]='bbc_sounds'
         [use_multi]=true
         [preview_content]='
-      id=$(echo {} | cut -d"|" -f1)
-      description=$(echo {} | cut -d"|" -f2)
-      echo "\e[0;97mID: \e[1;37m$id"
-      echo "\e[0;97mDescription: \e[1;32m$description"
-      echo "\e[0;97mDrücke Ctrl-F zum Togglen"
-      echo ""
-      
-      fav=$(python3 -m src.main is_favourite "$id")
-      if [[ "$fav" == "1" ]]; then
-        echo "\e[1;37mFAVORIT \e[5m⭐"
-      fi
-      
-      echo "\e[0;97m"
-      echo "Comment: No I do not know how to get rid of the trailing | sign <3"
-      '
-
-
-        # 'echo "Category: {1}\nSize: {2}\nDuration: {3}\nComment: No I do not know how to get rid of the trailing | sign,\nI have already spent 2h on this thing and I decided\nto consider that a feature not a bug.\nConsider a PR if that annoys u <3"'
+          id=$(echo {} | cut -d"|" -f1)
+          description=$(echo {} | cut -d"|" -f2)
+          echo "\e[0;97mID: \e[1;37m$id"
+          echo "\e[0;97mDescription: \e[1;32m$description"
+          echo "\e[0;97mDrücke Ctrl-F zum Togglen"
+          echo ""
+          
+          fav=$(python3 -m src.main is_favourite "$id")
+          if [[ "$fav" == "1" ]]; then
+            echo "\e[1;37mFAVORIT \e[5m⭐"
+          fi
+          
+          echo "\e[0;97m"
+          echo "Comment: No I do not know how to get rid of the trailing | sign <3"
+          '
         [delimiter]='|'
         [info_label]='Info'
         [info_content]='[Arrows] Navigate [Enter] Confirm selected category.'
@@ -249,7 +250,15 @@ open_main_menu() {
         [with_nth]=2
         [sample_list]=true
         [sound_category]="${category_name}"
+        # [bindings_array]="sounds_bindings"
       )
+
+      # sounds_bindings=(
+      #     "ctrl-d:execute(
+      #       sound_id=$(echo {} | cut -d"|" -f1)
+      #       python3 -m src.main bbc_download_preview_sound \"\${sound_id}\" \"\${SOUND_CATEGORY}\"
+      #     )"
+      # )
 
       local sounds=$(open_fzf_menu 'bbc_sounds_config')
       # echo $sounds
@@ -261,7 +270,8 @@ open_main_menu() {
    esac
 }
 
+check_fzf
+
+
 open_main_menu
-
-
 deactivate

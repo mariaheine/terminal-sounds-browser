@@ -35,3 +35,6 @@ class BBCSoundDownloader:
         else:
             self.logger.error(f"Download bbc preview sound failed, status code: {response.status_code}")
             return None
+
+    # def _download_sound_with_status(self, sound_id: str):
+
