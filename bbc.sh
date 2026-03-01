@@ -90,7 +90,8 @@ open_fzf_menu() {
     --header="$info_content"
     --header-label "'° ${info_label} °'"
     --preview-label "'° ${preview_label} °'"
-    --preview-window=right:40%
+    --preview-window=right:40%:wrap
+    --preview="$preview_content"
     --color 'border:#aaaaaa,label:#cccccc'
     --color 'preview-border:#9999cc,preview-label:#ccccff'
     --color 'list-border:#669966,list-label:#99cc99'
@@ -110,21 +111,21 @@ open_fzf_menu() {
   if [[ "$sample_list" == "true" ]]; then
   
 
-    local preview_cmd='
-      id=$(echo {} | cut -d"|" -f1)
-      fav=$(python3 -m src.main is_favourite "$id")
-      if [[ "$fav" == "1" ]]; then
-        echo "⭐ FAVORIT"
-      else
-        echo "❌ Nicht favorisiert"
-      fi
-      echo "ID: $id"
-      echo "Drücke Ctrl-F zum Togglen"
-    '
-
+    # local preview_cmd='
+    #   id=$(echo {} | cut -d"|" -f1)
+    #   description=$(echo {} | cut -d"|" -f2)
+    #   echo "\e[0;97mID: \e[1;37m$id"
+    #   echo "\e[0;97mDescription: \e[1;32m$description"
+    #   echo "\e[0;97mDrücke Ctrl-F zum Togglen"
+    #   echo ""
+    #   
+    #   fav=$(python3 -m src.main is_favourite "$id")
+    #   if [[ "$fav" == "1" ]]; then
+    #     echo "\e[1;37mFAVORIT \e[5m⭐"
+    #   fi
+    # '
 
     # TODO
-
     fzf_args+=(--bind 'ctrl-f:execute(
         sound_id=$(echo {} | cut -d"|" -f1)
         python3 -m src.main toggle_favourite "${sound_id}"
@@ -135,14 +136,15 @@ open_fzf_menu() {
         sound_id=$(echo {} | cut -d"|" -f1)
         python3 -m src.main bbc_download_preview_sound "${sound_id}" "${SOUND_CATEGORY}"
       )')
-    fzf_args+=(--preview "$preview_cmd")
+    # fzf_args+=(--preview "$preview_cmd")
 
-  else
+  # else
 
-    fzf_args+=(--preview="$preview_content")
+    # fzf_args+=(--preview="$preview_content")
 
   fi
 
+    # fzf_args+=(--preview="$preview_content")
   # if [[ -n "${with_nth}" ]]; then
   #   fzf_args+=(--with-nth="${with_nth}")
   # fi
@@ -199,7 +201,10 @@ open_main_menu() {
       declare -A bbc_categories_config=(
         [data_array]='bbc_categories'
         [use_multi]=false
-        [preview_content]='echo "Category: {1}\nSize: {2}"'
+        [preview_content]='
+            echo "\e[0;97mCategory: \e[1;32m{1}"
+            echo "\e[0;97mSize: \e[1;32m{2}"
+          '
         [delimiter]=' '
         [info_label]='Info'
         [info_content]='[Arrows] Navigate [Enter] Confirm selected category.'
@@ -217,7 +222,25 @@ open_main_menu() {
       declare -A bbc_sounds_config=(
         [data_array]='bbc_sounds'
         [use_multi]=true
-        [preview_content]='echo "Category: {1}\nSize: {2}\nDuration: {3}\nComment: No I do not know how to get rid of the trailing | sign,\nI have already spent 2h on this thing and I decided\nto consider that a feature not a bug.\nConsider a PR if that annoys u <3"'
+        [preview_content]='
+      id=$(echo {} | cut -d"|" -f1)
+      description=$(echo {} | cut -d"|" -f2)
+      echo "\e[0;97mID: \e[1;37m$id"
+      echo "\e[0;97mDescription: \e[1;32m$description"
+      echo "\e[0;97mDrücke Ctrl-F zum Togglen"
+      echo ""
+      
+      fav=$(python3 -m src.main is_favourite "$id")
+      if [[ "$fav" == "1" ]]; then
+        echo "\e[1;37mFAVORIT \e[5m⭐"
+      fi
+      
+      echo "\e[0;97m"
+      echo "Comment: No I do not know how to get rid of the trailing | sign <3"
+      '
+
+
+        # 'echo "Category: {1}\nSize: {2}\nDuration: {3}\nComment: No I do not know how to get rid of the trailing | sign,\nI have already spent 2h on this thing and I decided\nto consider that a feature not a bug.\nConsider a PR if that annoys u <3"'
         [delimiter]='|'
         [info_label]='Info'
         [info_content]='[Arrows] Navigate [Enter] Confirm selected category.'

@@ -1,1 +1,63 @@
-{"id": "07069030", "file": {"small": {"name": "07069030", "bitrate": "128kbps"}, "original": {"name": "07069030", "bitrate": ""}}, "description": "Exterior. Taxi up & past.", "duration": 63533.333, "recordedDate": "unknown", "categories": [{"className": "Aircraft", "p": 0.999999, "textCoverage": 0.999999}, {"className": "Transport", "p": 0.999999, "textCoverage": 0.999999}], "subCategories": [], "location": {"continent": ""}, "tags": ["exterior", "taxi", "aircraft", "trident"], "source": "bbc_archive", "technicalMetadata": {"file_name": "07069030.wav", "sample_rate": "44100", "bits_per_sample": 16, "channels": 2, "duration": "63.533333"}, "additionalMetadata": {"cdName": "Aircraft 1", "locationText": "", "originalCategory": "Aircraft: Trident", "additionalCategory": "Transport"}, "fileSizes": {"wavFileSize": "11208048", "mp3FileSize": "1018280"}}
+{
+  "id": "07074197",
+  "file": {
+    "small": {
+      "name": "07074197",
+      "bitrate": "128kbps"
+    },
+    "original": {
+      "name": "07074197",
+      "bitrate": ""
+    }
+  },
+  "description": "Atmosphere in a small shop with caged birds (recorded in a pet shop but suitable for an aviary (rec. Petersfield, Hants) - 1986 (1B19,reprocessed)",
+  "duration": 69933.333,
+  "recordedDate": "unknown",
+  "categories": [
+    {
+      "className": "Birds",
+      "p": 0.999999,
+      "textCoverage": 0.999999
+    },
+    {
+      "className": "Animals",
+      "p": 0.999999,
+      "textCoverage": 0.999999
+    }
+  ],
+  "subCategories": [],
+  "location": {
+    "continent": ""
+  },
+  "tags": [
+    "atmosphere",
+    "shop",
+    "birds",
+    "aviary",
+    "petersfield",
+    "hants",
+    "interiors",
+    "shops",
+    "cash",
+    "registers",
+    "small"
+  ],
+  "source": "bbc_archive",
+  "technicalMetadata": {
+    "file_name": "07074197.wav",
+    "sample_rate": "44100",
+    "bits_per_sample": 16,
+    "channels": 2,
+    "duration": "69.933333"
+  },
+  "additionalMetadata": {
+    "cdName": "Interiors - Shops and Cash Registers",
+    "locationText": "",
+    "originalCategory": "Birds",
+    "additionalCategory": "Animals"
+  },
+  "fileSizes": {
+    "wavFileSize": "12337008",
+    "mp3FileSize": "1120808"
+  }
+}
