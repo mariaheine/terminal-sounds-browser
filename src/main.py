@@ -10,13 +10,6 @@ from src.bbc_sounds_data import BBCSounds
 from src.bbc_sound_downloader import BBCSoundDownloader
 from src.constants import SOUNDS_CACHE_DIR
 
-version = "0.1.0"
-
-headers = {
-    f"User-Agent": "bbc-sound-browser/{version} (educational project; respectful scraper; browsing samples and downloading favourites; no bulk download)",
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-}
 
 def main():
     parser = argparse.ArgumentParser(description="Sound Effect Browser")
@@ -39,7 +32,7 @@ def main():
     # bbc sounds subparser
     bbc_sounds_parser = subparsers.add_parser("bbc_get_sounds_data")
     bbc_sounds_parser.add_argument("category")
-    bbc_sounds_parser.add_argument("size")
+    bbc_sounds_parser.add_argument("category_size")
 
    # parser.add_argument(
    #     "command", 
@@ -56,7 +49,7 @@ def main():
     logger = Logger()
  
     if args.command == "bbc_get_categories":
-        bbc_categories = BBCCategories(logger, bbc_db_path)
+        bbc_categories = BBCCategories(bbc_db_path)
         categories = bbc_categories.get_categories()
         for key, val in categories.items():
             category_name = key
@@ -64,13 +57,14 @@ def main():
             print(f"{category_name} {category_size}")
 
     elif args.command == "bbc_get_sounds_data":
-        bbc_sounds = BBCSounds(logger, bbc_db_path, args.category, args.size, headers)
-        sounds_list = bbc_sounds.get_sounds()
+        bbc_sounds = BBCSounds(bbc_db_path, args.category, args.category_size)
+        sounds_list = bbc_sounds.get_list_of_sounds()
         for val in sounds_list:
            print(f"{val}")
 
     elif args.command == "toggle_favourite":
-        print(f"meow! oioioioioi {args.sound_id}")
+        bbc_sounds = BBCSounds(bbc_db_path, args.category, args.category_size)
+        bbc_sounds.toggle_favourite(args.sound_id)
 
     elif args.command == "is_favourite":
         print("1")

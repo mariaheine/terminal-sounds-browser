@@ -13,60 +13,26 @@ In any case this tool does not support bulk download of samples.
 import requests
 import sys
 import sqlite3
-import time
-import json
 from pathlib import Path
 from src.database import Database
 from src.logger import Logger
-
-version = "0.1.0"
-
+from src.constants import HEADERS, BBC_URL_API, BBC_API_CATEGORY_AGGREGATIONS_ENDPOINT
 
 class BBCCategories:
-    def __init__(self, logger: Logger, db_path: Path):
+    def __init__(self, db_path: Path):
         self.db_path = db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.database = Database(logger, db_path, verbose=True)
-        #self.request_delay = 0.5
-        self.headers = {
-            f"User-Agent": "bbc-sound-browser/{version} (educational project; respectful scraper; browsing samples and downloading favourites; no bulk download)",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        }
-        self.bbc_url_api = "https://sound-effects-api.bbcrewind.co.uk/api/sfx"
-        self.bbc_endpoint_aggregations_category = "/categoryAggregations"
+        self.logger = Logger()
+        self.database = Database( db_path, verbose=True)
 
-        self.logger = logger
         self.logger.info("Accessing BBC Categories Menu")
 
-        self.init_session()
+        if not self.check_categories_cache():
+            self.update_categories_cache()
 
-    def init_session(self):
-        self.session = requests.Session()
-        self.session.headers.update(self.headers)
-
-    def init_db(self):
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-
-            # TODO this is some relic of the past
-            cursor.execute(
-                """
-                CREATE TABLE IF NOT EXISTS favorites (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,  °
-                  title TEXT NOT NULL CHECK(LENGTH(title) > 0),
-                  url TEXT UNIQUE NOT NULL,
-                  duration INTEGER CHECK(duration > 0),
-                  added_date DATE DEFAULT (datetime('now')),
-                  category TEXT DEFAULT 'uncategorized',
-                  is_favorite BOOLEAN DEFAULT 0
-                )
-                """
-            )
-
-    #def search(self, query):
-    #    time.sleep(self.request_delay)
-    #    response = self.session.get(f"{base_url}", params={"q": query})
+    def update_categories_cache(self):
+        categories = self.download_categories_data()
+        self.cache_categories_data(categories)
 
     def download_categories_data(self):
         payload = {
@@ -74,14 +40,14 @@ class BBCCategories:
                 "caregories": None,
                 "durations": None,
                 "from": 0,
-                "size": 10,
+                "size": 10, # TODO should we assume that
             }
         }
 
         response = requests.post(
-            f"{self.bbc_url_api}{self.bbc_endpoint_aggregations_category}",
+            f"{BBC_URL_API}{BBC_API_CATEGORY_AGGREGATIONS_ENDPOINT}",
             json=payload,
-            headers=self.headers,
+            headers=HEADERS
         )
 
         if response.status_code == 200:
@@ -196,13 +162,8 @@ class BBCCategories:
         categories = {name: size for name, size in cursor.fetchall()}
         return categories
             
-    def update_categories_cache(self):
-        categories = self.download_categories_data()
-        self.cache_categories_data(categories)
               
     def get_categories(self):
-        if not self.check_categories_cache():
-            self.update_categories_cache()
         categories = self.get_cached_categories()
         return categories
       

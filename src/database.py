@@ -4,9 +4,9 @@ from typing import Tuple
 from src.logger import Logger
 
 class Database:
-    def __init__(self, logger: Logger, db_path: Path, verbose=False):
+    def __init__(self, db_path: Path, verbose=False):
         self.conn = sqlite3.connect(db_path)
-        self.logger = logger
+        self.logger = Logger()
         self.verbose = verbose
 
     def execute(self, query, params = None, silent=False):

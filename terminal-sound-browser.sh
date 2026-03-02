@@ -237,7 +237,7 @@ open_bbc_categories_menu() {
     [info_content]='[Arrows] Navigate [Enter] Confirm selected category.'
     [list_label]="BBC Sound Effects for ${category_name} category"
     [preview_label]='Category Info'
-    [with_nth]=2
+    [with_nth]='4,2'
     [sample_list]=true
     [sound_category]="${category_name}"
     # [bindings_array]="sounds_bindings"
