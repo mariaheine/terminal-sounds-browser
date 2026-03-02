@@ -36,7 +36,6 @@ class DownloadWorker:
 def main():
 
     logger = Logger()
-    logger.info("ARE WE EVEN HERE")
 
     parser = argparse.ArgumentParser(description="Download Worker")
     parser.add_argument("url")

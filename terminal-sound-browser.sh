@@ -2,31 +2,36 @@
 
 set -euo pipefail
 
-# Finde das Projekt-Root (wo dieses Skript liegt)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-echo "📁 Projekt-Root: $SCRIPT_DIR"
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+echo "📁 Project-Root: $SCRIPT_DIR"
 
 source "$SCRIPT_DIR/.venv/bin/activate"
-export PYTHONPATH="${PYTHONPATH:-}:$SCRIPT_DIR"
-echo "🔧 PYTHONPATH: $PYTHONPATH"
 
-# clear the log file
-# to just use one and overwrite it on every run
+readonly PYTHONPATH="${PYTHONPATH:-}:$SCRIPT_DIR"
+export PYTHONPATH
+
+readonly AUTO_MODE_FILE="/tmp/tsb_auto_mode_$$" # $$ is process id
+echo "false" > "$AUTO_MODE_FILE"
+export AUTO_MODE_FILE
+
+readonly CURRENT_MPV_PROCESS_PID_FILE="/tmp/tsb_current_mpv_pid_$$"
+echo "" > "$CURRENT_MPV_PROCESS_PID_FILE"
+export CURRENT_MPV_PROCESS_PID_FILE
+
+# clearing the log file 
 mkdir -p "${HOME}/.cache/terminal-effect-browser/logs"
 > "${HOME}/.cache/terminal-effect-browser/logs/last.log"
 
-export AUTO_MODE_FILE="/tmp/tsb_auto_mode_$$" # $$ is process id
-echo "false" > "$AUTO_MODE_FILE"
+readonly BBC_MPV_TAG="term-mpv-$$"
+export BBC_MPV_TAG
 
-export CURRENT_MPV_PROCESS_PID_FILE="/tmp/tsb_current_mpv_pid_$$"
-echo "" > "$CURRENT_MPV_PROCESS_PID_FILE"
-
-export BBC_MPV_TAG="term-mpv-$$"
 cleanup() {
   rm -f "$AUTO_MODE_FILE"
+  rm -f "$CURRENT_MPV_PROCESS_PID_FILE"
   pkill -f "${BBC_MPV_TAG}" # kill running mpv processes 
 }
-trap cleanup EXIT # TODO
+
+trap cleanup EXIT INT TERM KILL
 
 check_fzf() {
 
@@ -108,9 +113,6 @@ open_fzf_menu() {
 
   if [[ "$sample_list" == "true" ]]; then
 
-    export SOUND_CATEGORY=$sound_category
-
-    # TODO
     fzf_args+=(--bind 'ctrl-f:execute(
         sound_id=$(echo {} | cut -d"|" -f1)
         python3 -m src.main toggle_favourite "${sound_id}"
@@ -121,24 +123,22 @@ open_fzf_menu() {
         python3 -m src.main bbc_download_preview_sound "${sound_id}" "${SOUND_CATEGORY}"
       )')
     
-#       if [[ -n "$LAST_MPV_PID" ]] && kill -0 "$LAST_MPV_PID" 2>/dev/null; then
-#   kill "$LAST_MPV_PID" 2>/dev/null  # Sofort, kein Durchsuchen
-# fi
-
     # These mpv process PID gymnastics were necessary to neatly kill the process in background
     # So that the fzf window doesnt blick unpleasantly when the main process is blocked
     fzf_args+=(--bind 'focus:execute(
 
         last_pid=$( cat "${CURRENT_MPV_PROCESS_PID_FILE}" )
-        kill "${last_pid}" &
+        if [[ -n "${last_pid}" ]] && kill -0 "${last_pid}" 2>/dev/null; then
+          kill "${last_pid}" 2>/dev/null &
+        fi
         sound_id=$(echo {} | cut -d"|" -f1)
-        filepath="$HOME"/.cache/terminal-effect-browser/sounds/bbc/"${SOUND_CATEGORY}"/"${sound_id}"
+        filepath="$HOME"/.cache/terminal-effect-browser/sounds/bbc/'"${sound_category}"'/"${sound_id}"
 
         if [[ -f "${filepath}.mp3" ]] && [[ ! -f "${filepath}.mp3.tmp" ]]; then
           mpv --no-video --no-terminal --loop=inf --title="${BBC_MPV_TAG}" "${filepath}.mp3" &
-          echo "$!" > '"${CURRENT_MPV_PROCESS_PID_FILE}"'
+          echo "$!" > "${CURRENT_MPV_PROCESS_PID_FILE}"
         else
-          python3 -m src.main bbc_download_preview_sound "${sound_id}" "${SOUND_CATEGORY}" &
+          python3 -m src.main bbc_download_preview_sound "${sound_id}" '"${sound_category}"' &
           (
             while [[ -f "${filepath}.mp3.tmp" ]] || [[ ! -f "${filepath}.mp3" ]]; do
               sleep 0.5
@@ -162,15 +162,15 @@ open_fzf_menu() {
     # Because we were only reading it
     # And we needed read/write here
     fzf_args+=(--bind 'f2:execute(
-      if [[ $( cat '"$AUTO_MODE_FILE"' ) == "true" ]]; then
-        echo false > '"$AUTO_MODE_FILE"'
+      if [[ $( cat "$AUTO_MODE_FILE" ) == "true" ]]; then
+        echo false > "$AUTO_MODE_FILE"
       else
-        echo true > '"$AUTO_MODE_FILE"'
+        echo true > "$AUTO_MODE_FILE"
       fi
     )+refresh-preview')
 
     preview_content+=';
-      if [[ $( cat '"$AUTO_MODE_FILE"' ) == "true" ]]; then
+      if [[ $( cat "$AUTO_MODE_FILE" ) == "true" ]]; then
         echo ""
         echo "AUTO MODE IS ON"
       fi
@@ -189,6 +189,70 @@ open_fzf_menu() {
   echo $selection
 } 
 
+open_bbc_categories_menu() {
+
+  local bbc_categories=$(python3 -m src.main bbc_get_categories)
+
+  declare -A bbc_categories_config=(
+    [data_array]='bbc_categories'
+    [use_multi]=false
+    [preview_content]='
+        echo "\e[0;97mCategory: \e[1;32m{1}"
+        echo "\e[0;97mSize: \e[1;32m{2}"
+      '
+    [delimiter]=' '
+    [info_label]='Info'
+    [info_content]='[Arrows] Navigate [Enter] Confirm selected category.'
+    [list_label]='BBC Sound Effect Categories'
+    [preview_label]='Category Info'
+  )
+
+  local category=$(open_fzf_menu 'bbc_categories_config')
+  local category_name=$(echo "${category}" | cut -d' ' -f1)
+  local category_size=$(echo "${category}" | cut -d' ' -f2)
+
+  local bbc_sounds=$(python3 -m src.main bbc_get_sounds_data "${category_name}" "${category_size}")
+
+  declare -A bbc_sounds_config=(
+    [data_array]='bbc_sounds'
+    [use_multi]=true
+    [preview_content]='
+      id=$(echo {} | cut -d"|" -f1)
+      description=$(echo {} | cut -d"|" -f2)
+      echo "\e[0;97mID: \e[1;37m$id"
+      echo "\e[0;97mDescription: \e[1;32m$description"
+      echo "\e[0;97mDrücke Ctrl-F zum Togglen"
+      echo ""
+      
+      fav=$(python3 -m src.main is_favourite "$id")
+      if [[ "$fav" == "1" ]]; then
+        echo "\e[1;37mFAVORIT \e[5m⭐"
+      fi
+      
+      echo "\e[0;97m"
+      echo "Comment: No I do not know how to get rid of the trailing | sign <3"
+      '
+    [delimiter]='|'
+    [info_label]='Info'
+    [info_content]='[Arrows] Navigate [Enter] Confirm selected category.'
+    [list_label]="BBC Sound Effects for ${category_name} category"
+    [preview_label]='Category Info'
+    [with_nth]=2
+    [sample_list]=true
+    [sound_category]="${category_name}"
+    # [bindings_array]="sounds_bindings"
+  )
+
+  # sounds_bindings=(
+  #     "ctrl-d:execute(
+  #       sound_id=$(echo {} | cut -d"|" -f1)
+  #       python3 -m src.main bbc_download_preview_sound \"\${sound_id}\" \"\${SOUND_CATEGORY}\"
+  #     )"
+  # )
+
+  local sounds=$(open_fzf_menu 'bbc_sounds_config')
+}
+
 open_main_menu() {
 
   local readonly menu_option_1="Browse BBC Categories"
@@ -202,7 +266,6 @@ open_main_menu() {
     "$menu_option_3"
     "$menu_option_4"
   )
-
   
   declare -A menu_config=(
     [data_array]='menu_elements'
@@ -215,80 +278,20 @@ open_main_menu() {
     [preview_label]='Option Info'
   )
 
-  echo "DEBUG: Passing array name: menu_elements" >&2
-  echo "DEBUG: Array contents: ${menu_elements[@]}" >&2
+  # echo "DEBUG: Passing array name: menu_elements" >&2
+  # echo "DEBUG: Array contents: ${menu_elements[@]}" >&2
 
   local selected=$(open_fzf_menu 'menu_config')
 
   case "${selected}" in
     "$menu_option_1")
-      
-      local bbc_categories=$(python3 -m src.main bbc_get_categories)
-
-      declare -A bbc_categories_config=(
-        [data_array]='bbc_categories'
-        [use_multi]=false
-        [preview_content]='
-            echo "\e[0;97mCategory: \e[1;32m{1}"
-            echo "\e[0;97mSize: \e[1;32m{2}"
-          '
-        [delimiter]=' '
-        [info_label]='Info'
-        [info_content]='[Arrows] Navigate [Enter] Confirm selected category.'
-        [list_label]='BBC Sound Effect Categories'
-        [preview_label]='Category Info'
-      )
-
-      local category=$(open_fzf_menu 'bbc_categories_config')
-
-      local category_name=$(echo "${category}" | cut -d' ' -f1)
-      local category_size=$(echo "${category}" | cut -d' ' -f2)
-
-      local bbc_sounds=$(python3 -m src.main bbc_get_sounds_data "${category_name}" "${category_size}")
-
-      declare -A bbc_sounds_config=(
-        [data_array]='bbc_sounds'
-        [use_multi]=true
-        [preview_content]='
-          id=$(echo {} | cut -d"|" -f1)
-          description=$(echo {} | cut -d"|" -f2)
-          echo "\e[0;97mID: \e[1;37m$id"
-          echo "\e[0;97mDescription: \e[1;32m$description"
-          echo "\e[0;97mDrücke Ctrl-F zum Togglen"
-          echo ""
-          
-          fav=$(python3 -m src.main is_favourite "$id")
-          if [[ "$fav" == "1" ]]; then
-            echo "\e[1;37mFAVORIT \e[5m⭐"
-          fi
-          
-          echo "\e[0;97m"
-          echo "Comment: No I do not know how to get rid of the trailing | sign <3"
-          '
-        [delimiter]='|'
-        [info_label]='Info'
-        [info_content]='[Arrows] Navigate [Enter] Confirm selected category.'
-        [list_label]="BBC Sound Effects for ${category_name} category"
-        [preview_label]='Category Info'
-        [with_nth]=2
-        [sample_list]=true
-        [sound_category]="${category_name}"
-        # [bindings_array]="sounds_bindings"
-      )
-
-      # sounds_bindings=(
-      #     "ctrl-d:execute(
-      #       sound_id=$(echo {} | cut -d"|" -f1)
-      #       python3 -m src.main bbc_download_preview_sound \"\${sound_id}\" \"\${SOUND_CATEGORY}\"
-      #     )"
-      # )
-
-      local sounds=$(open_fzf_menu 'bbc_sounds_config')
-      # echo $sounds
+      open_bbc_categories_menu 
+      ;;
+    "$menu_option_4")
+      echo "Goodbaiii 🐱"
       ;;
     *)
       echo "derp menu option: ${selected}"
-      #mpv --no-video "./_NHU05104088.mp3"
       ;;
    esac
 }

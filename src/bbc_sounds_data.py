@@ -41,23 +41,11 @@ class BBCSounds:
         if response.status_code == 200:
             data = response.json()
             
-            # Uncomment this if BBC changes their response body structure
-            # and things get broken.
-            self.save_example_sound_json(data["results"][0])
+            # To view the json response body structure from bbc
+            # You can find this file neatly formatted in project doc files.
+            # If it is outdated uncomment this to check new json out:
+            # self.save_example_sound_json(data["results"][0])
 
-            #structure of response body:
-            #{
-            #   "results": [
-            #       {
-            #           "id": "07123" ! it is the same as the mp3 filename !
-            #           "description": "asdf"
-            #           "categ
-            #           "duration": 1234124.43
-            #           there are also: tags, location, 
-            #       }
-            #   ]
-            #}
- 
             sound_db = {
                 item["id"]: {
                     "description": item["description"],
@@ -72,18 +60,8 @@ class BBCSounds:
 
             self.logger.info(f"Downloaded {len(sound_db.keys())} sound descriptors from BBC.")
 
-
-
-
-            #sound_db = {
-             #   key: value["id"] for key, value in data["results"]
-            #}
-
-            #self.download_sound(list(sound_db.keys())[0])
-
             return sound_db
 
-            # return list(sound_db.items())[0]
         else:
             # TODO handle
             self.logger.error(f"Failed to get sounds data for category {self.category}, status code: {response.status_code}")
