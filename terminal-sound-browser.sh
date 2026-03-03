@@ -2,8 +2,23 @@
 
 set -euo pipefail
 
+#  ____                             __                    __                          
+# /\  _`\                          /\ \__                /\ \__  __                   
+# \ \ \/\_\    ___     ___     ____\ \ ,_\    __      ___\ \ ,_\/\_\    ___      __   
+#  \ \ \/_/_  / __`\ /' _ `\  /',__\\ \ \/  /'__`\  /' _ `\ \ \/\/\ \ /' _ `\  /'__`\ 
+#   \ \ \L\ \/\ \L\ \/\ \/\ \/\__, `\\ \ \_/\ \L\.\_/\ \/\ \ \ \_\ \ \/\ \/\ \/\  __/ 
+#    \ \____/\ \____/\ \_\ \_\/\____/ \ \__\ \__/.\_\ \_\ \_\ \__\\ \_\ \_\ \_\ \____\
+#     \/___/  \/___/  \/_/\/_/\/___/   \/__/\/__/\/_/\/_/\/_/\/__/ \/_/\/_/\/_/\/____/
+#
+# Explanation 1. All those exported constants are such to make them readable in fzf subcontext.
+# Explanation 2. All those temp files are necessary because we need some rw variable
+#                while in fzf subcontext.
+# Explanation 3. For common constants constants.py is the source of truth.
+
+# PART 1. LOCAL CONSTANTS
+
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-echo "📁 Project-Root: $SCRIPT_DIR"
+echo "🗿 root: $SCRIPT_DIR"
 
 source "$SCRIPT_DIR/.venv/bin/activate"
 
@@ -18,12 +33,46 @@ readonly CURRENT_MPV_PROCESS_PID_FILE="/tmp/tsb_current_mpv_pid_$$"
 echo "" > "$CURRENT_MPV_PROCESS_PID_FILE"
 export CURRENT_MPV_PROCESS_PID_FILE
 
-# clearing the log file 
-mkdir -p "${HOME}/.cache/terminal-effect-browser/logs"
-> "${HOME}/.cache/terminal-effect-browser/logs/last.log"
 
 readonly BBC_MPV_TAG="term-mpv-$$"
 export BBC_MPV_TAG
+
+# PART 2. COMMON CONSTANTS
+
+readonly CONSTANTS=$(python3 -c "
+from src.constants import (
+    VERSION,
+    LOGS_DIR,
+    LOG_FILE_NAME,
+    BBC_SOUNDS_CACHE_DIR,
+)
+print(f'VERSION={VERSION}')
+print(f'LOGS_DIR={LOGS_DIR}')
+print(f'LOG_FILE_NAME={LOG_FILE_NAME}')
+print(f'BBC_SOUNDS_CACHE_DIR={BBC_SOUNDS_CACHE_DIR}')
+")
+
+# TODO so what is actually the type returned by multiple pythin prints
+echo "oik"
+echo "${CONSTANTS}"
+# echo "${CONSTANTS[@]}"
+# echo "${CONSTANTS[*]}"
+echo "endoik"
+
+while IFS= read -r line; do
+    export "$line"
+done <<< "$CONSTANTS"
+
+#
+#  ____    ___                                             
+# /\  _`\ /\_ \                                            
+# \ \ \/\_\//\ \      __     __      ___   __  __  _____   
+#  \ \ \/_/_\ \ \   /'__`\ /'__`\  /' _ `\/\ \/\ \/\ '__`\ 
+#   \ \ \L\ \\_\ \_/\  __//\ \L\.\_/\ \/\ \ \ \_\ \ \ \L\ \
+#    \ \____//\____\ \____\ \__/.\_\ \_\ \_\ \____/\ \ ,__/
+#     \/___/ \/____/\/____/\/__/\/_/\/_/\/_/\/___/  \ \ \/ 
+#                                                    \ \_\ 
+# AND TRAP                                            \/_/
 
 cleanup() {
   rm -f "$AUTO_MODE_FILE"
@@ -31,7 +80,12 @@ cleanup() {
   pkill -f "${BBC_MPV_TAG}" # kill running mpv processes 
 }
 
-trap cleanup EXIT INT TERM KILL
+clear_log_file() {
+  mkdir -p "${LOGS_DIR}"
+  > "${LOGS_DIR}/${LOG_FILE_NAME}"
+}
+
+trap cleanup EXIT INT TERM KILL # is that an overkill?
 
 check_fzf() {
 
@@ -61,12 +115,21 @@ check_fzf() {
   fi
 }
 
+#    ___            ___                                             
+#  /'___\         /'___\                                            
+# /\ \__/  ____  /\ \__/           ___ ___      __    ___   __  __  
+# \ \ ,__\/\_ ,`\\ \ ,__\_______ /' __` __`\  /'__`\/' _ `\/\ \/\ \ 
+#  \ \ \_/\/_/  /_\ \ \_/\______\/\ \/\ \/\ \/\  __//\ \/\ \ \ \_\ \
+#   \ \_\   /\____\\ \_\\/______/\ \_\ \_\ \_\ \____\ \_\ \_\ \____/
+#    \/_/   \/____/ \/_/          \/_/\/_/\/_/\/____/\/_/\/_/\/___/
+#
+
 open_fzf_menu() {
 
   local config_name="$1"
   local -n config="$config_name"
 
-  local data_array="${config[data_array]:-}"
+  local -n data="${config[data]:-}"
   local use_multi="${config[use_multi]:-false}"
   local delimiter="${config[delimiter]:-''}"
   local with_nth="${config[with_nth]:-1}"
@@ -78,9 +141,6 @@ open_fzf_menu() {
   local sample_list="${config[sample_list]:-false}"
   local sound_category="${config[sound_category]:-''}"
   # local bindings="${config[bindings]:-()}"
-
-
-  local -n listed_elements="$data_array"
   
   #echo "DEBUG: RECONSTRUCTED contents: ${listed_elements[@]}" >&2
 
@@ -132,7 +192,7 @@ open_fzf_menu() {
           kill "${last_pid}" 2>/dev/null &
         fi
         sound_id=$(echo {} | cut -d"|" -f1)
-        filepath="$HOME"/.cache/terminal-effect-browser/sounds/bbc/'"${sound_category}"'/"${sound_id}"
+        filepath="${BBC_SOUNDS_CACHE_DIR}"/'"${sound_category}"'/"${sound_id}"
 
         if [[ -f "${filepath}.mp3" ]] && [[ ! -f "${filepath}.mp3.tmp" ]]; then
           mpv --no-video --no-terminal --loop=inf --title="${BBC_MPV_TAG}" "${filepath}.mp3" &
@@ -158,9 +218,6 @@ open_fzf_menu() {
     #   fi
     # )+refresh-preview")
 
-    # We cold not use the same simple export method as with SOUND_CATEGORY
-    # Because we were only reading it
-    # And we needed read/write here
     fzf_args+=(--bind 'f2:execute(
       if [[ $( cat "$AUTO_MODE_FILE" ) == "true" ]]; then
         echo false > "$AUTO_MODE_FILE"
@@ -180,9 +237,9 @@ open_fzf_menu() {
     
   fzf_args+=(--preview "$preview_content")
 
-  # Convert listed_elements to a single multiline string
+  # Convert data to a single multiline string
   # TODO This is pretty cool, make notes on printg and how the array is being passed here
-  local fzf_input=$(printf '%s\n' "${listed_elements[@]}")
+  local fzf_input=$(printf '%s\n' "${data[@]}")
 
   local selection=$(echo "$fzf_input" | fzf "${fzf_args[@]}")
 
@@ -194,7 +251,7 @@ open_bbc_categories_menu() {
   local bbc_categories=$(python3 -m src.main bbc_get_categories)
 
   declare -A bbc_categories_config=(
-    [data_array]='bbc_categories'
+    [data]='bbc_categories'
     [use_multi]=false
     [preview_content]='
         echo "\e[0;97mCategory: \e[1;32m{1}"
@@ -214,7 +271,7 @@ open_bbc_categories_menu() {
   local bbc_sounds=$(python3 -m src.main bbc_get_sounds_data "${category_name}" "${category_size}")
 
   declare -A bbc_sounds_config=(
-    [data_array]='bbc_sounds'
+    [data]='bbc_sounds'
     [use_multi]=true
     [preview_content]='
       id=$(echo {} | cut -d"|" -f1)
@@ -268,7 +325,7 @@ open_main_menu() {
   )
   
   declare -A menu_config=(
-    [data_array]='menu_elements'
+    [data]='menu_elements'
     [use_multi]=false
     [preview_content]='echo "Category: {1}\nSize: {2}"'
     [delimiter]='\n'
@@ -296,6 +353,29 @@ open_main_menu() {
    esac
 }
 
+
+# echo '___  ___  ___                ________ ________  ___  _______   ________   ________  ___       
+# |\  \|\  \|\  \              |\  _____\\   __  \|\  \|\  ___ \ |\   ___  \|\   ___ \|\  \      
+# \ \  \\\  \ \  \             \ \  \__/\ \  \|\  \ \  \ \   __/|\ \  \\ \  \ \  \_|\ \ \  \     
+#  \ \   __  \ \  \  ___        \ \   __\\ \   _  _\ \  \ \  \_|/_\ \  \\ \  \ \  \ \\ \ \  \    
+#   \ \  \ \  \ \  \|\  \        \ \  \_| \ \  \\  \\ \  \ \  \_|\ \ \  \\ \  \ \  \_\\ \ \__\   
+#    \ \__\ \__\ \__\ \  \        \ \__\   \ \__\\ _\\ \__\ \_______\ \__\\ \__\ \_______\|__|   
+#     \|__|\|__|\|__|\/  /|        \|__|    \|__|\|__|\|__|\|_______|\|__| \|__|\|_______|   ___ 
+#                  |\___/ /                                                                 |\__\
+#                  \|___|/                                                                  \|__|'
+#
+# echo "🪤 download path unknown: Please enter download path for your favourite samples."
+# echo "Tab to autocomplete, unexisting path will be mkdir'd."
+# echo "If you mess up, go to your config."
+# echo "🐖 It is in vi mode, you can't [Esc]ape it <evil laugher>"
+#
+# set -o vi # lol, 🧨
+#
+# read -e -p "download path: " download_dir
+# echo "selected download dir: $download_dir"
+
+
+clear_log_file
 check_fzf
 open_main_menu
 deactivate

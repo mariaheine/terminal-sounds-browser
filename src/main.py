@@ -8,7 +8,7 @@ from src.logger import Logger
 from src.bbc_categories import BBCCategories
 from src.bbc_sounds_data import BBCSounds
 from src.bbc_sound_downloader import BBCSoundDownloader
-from src.constants import SOUNDS_CACHE_DIR
+from src.constants import CACHE_DIR, SOUNDS_CACHE_DIR
 
 
 def main():
@@ -44,12 +44,12 @@ def main():
     args = parser.parse_args()
 
     cache_path = Path.home() / ".cache" / "terminal-effect-browser"
-    bbc_db_path = cache_path / "database" / "bbc.db"
+    # bbc_db_path = cache_path / "database" / "bbc.db"
 
     logger = Logger()
  
     if args.command == "bbc_get_categories":
-        bbc_categories = BBCCategories(bbc_db_path)
+        bbc_categories = BBCCategories()
         categories = bbc_categories.get_categories()
         for key, val in categories.items():
             category_name = key
@@ -57,13 +57,13 @@ def main():
             print(f"{category_name} {category_size}")
 
     elif args.command == "bbc_get_sounds_data":
-        bbc_sounds = BBCSounds(bbc_db_path, args.category, args.category_size)
+        bbc_sounds = BBCSounds(args.category, args.category_size)
         sounds_list = bbc_sounds.get_list_of_sounds()
         for val in sounds_list:
            print(f"{val}")
 
     elif args.command == "toggle_favourite":
-        bbc_sounds = BBCSounds(bbc_db_path, args.category, args.category_size)
+        bbc_sounds = BBCSounds(args.category, args.category_size)
         bbc_sounds.toggle_favourite(args.sound_id)
 
     elif args.command == "is_favourite":

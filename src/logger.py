@@ -1,13 +1,11 @@
 from pathlib import Path
 from datetime import datetime
 from typing import List, Tuple
-from src.constants import LOGS_DIR
-
-LOG_FILE = "last.log"
+from src.constants import LOGS_DIR, LOG_FILE_NAME
 
 class Logger:
     def __init__(self):
-        self.log_path = LOGS_DIR / LOG_FILE
+        self.log_path = LOGS_DIR / LOG_FILE_NAME
 
     def _write(self, level, message):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

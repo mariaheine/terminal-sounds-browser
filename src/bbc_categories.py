@@ -16,14 +16,14 @@ import sqlite3
 from pathlib import Path
 from src.database import Database
 from src.logger import Logger
-from src.constants import HEADERS, BBC_URL_API, BBC_API_CATEGORY_AGGREGATIONS_ENDPOINT
+from src.constants import HEADERS, BBC_DATABASE, BBC_URL_API, BBC_API_CATEGORY_AGGREGATIONS_ENDPOINT
 
 class BBCCategories:
-    def __init__(self, db_path: Path):
-        self.db_path = db_path
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+    def __init__(self):
+        self.db_path = BBC_DATABASE
+        # self.db_path.parent.mkdir(parents=True, exist_ok=True) # TODO make note on this parent when file thing and delete
         self.logger = Logger()
-        self.database = Database( db_path, verbose=True)
+        self.database = Database(BBC_DATABASE, verbose=True)
 
         self.logger.info("Accessing BBC Categories Menu")
 

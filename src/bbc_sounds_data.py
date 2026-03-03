@@ -7,15 +7,15 @@ from pathlib import Path
 from typing import Dict
 from src.logger import Logger
 from src.database import Database
-from src.constants import HEADERS, BBC_URL_API, BBC_API_SEARCH_ENDPOINT
+from src.constants import HEADERS, BBC_DATABASE, BBC_URL_API, BBC_API_SEARCH_ENDPOINT
 
 class BBCSounds:
-    def __init__(self, db_path: Path, category: str, category_size: int):
-        self.db_path = db_path
+    def __init__(self, category: str, category_size: int):
+        self.db_path = BBC_DATABASE
         self.category = category
         self.category_size = category_size
         self.logger = Logger()
-        self.database = Database(db_path, verbose=True)
+        self.database = Database(BBC_DATABASE, verbose=True)
         self.bbc_url_api = "https://sound-effects-api.bbcrewind.co.uk/"
         self.bbc_sounds_search_endpoint = "api/sfx/search"
 
