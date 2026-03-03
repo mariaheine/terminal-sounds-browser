@@ -10,31 +10,24 @@ from src.database import Database
 from src.constants import HEADERS, BBC_DATABASE, BBC_URL_API, BBC_API_SEARCH_ENDPOINT
 
 class BBCSounds:
-    def __init__(self, category: str, category_size: int):
+    def __init__(self):
         self.db_path = BBC_DATABASE
-        self.category = category
-        self.category_size = category_size
         self.logger = Logger()
         self.database = Database(BBC_DATABASE, verbose=True)
         self.bbc_url_api = "https://sound-effects-api.bbcrewind.co.uk/"
         self.bbc_sounds_search_endpoint = "api/sfx/search"
 
-        if not self.check_sounds_cache_for_category():
-            self.update_sounds_data()
 
-    def update_sounds_data(self):
-        sound_db = self.download_sounds_data()
-        self.cache_sounds_data(sound_db)
 
-    def download_sounds_data(self):
+    def download_sounds_data(self, category: str, category_size: int):
 
-        self.logger.info(f"Downloading BBC sounds info for category {self.category} of size {self.category_size}")
+        self.logger.info(f"Downloading BBC sounds info for category {category} of size {category_size}")
 
         payload = {
             "criteria": {
-                "categories": [ self.category ],
+                "categories": [ category ],
                 "from": 0,
-                "size": self.category_size,
+                "size": category_size,
             }
         }
 
@@ -70,7 +63,7 @@ class BBCSounds:
 
         else:
             # TODO handle
-            self.logger.error(f"Failed to get sounds data for category {self.category}, status code: {response.status_code}")
+            self.logger.error(f"Failed to get sounds data for category {category}, status code: {response.status_code}")
             # sys.exit(1)
 
     # TODO move to some neat utils class
@@ -82,13 +75,13 @@ class BBCSounds:
         json_path.write_text(json_text)
 
 
-    def cache_sounds_data(self, data):
+    def cache_sounds_data(self, category: str, data):
 
-        if self.category == "":
+        if category == "":
             self.logger.error("Empty category name, can't download sounds data.")
             return None
 
-        self.logger.info(f"Caching BBC sounds info for category {self.category}")
+        self.logger.info(f"Caching BBC sounds info for category {category}")
 
         # Table for individual bbc sound effect data
         # Id is taken from the original sound id, see example json
@@ -184,7 +177,7 @@ class BBCSounds:
                 self.database.execute(query, params, silent=True)
                 self.database.commit()
 
-    def check_sounds_cache_for_category(self):
+    def check_sounds_cache_for_category(self, category: str, category_size: int):
         
         query = """
             SELECT name FROM sqlite_master
@@ -205,7 +198,7 @@ class BBCSounds:
                 JOIN categories c ON sc.category_id = c.id
                 WHERE c.name = ?
             """
-            params = (self.category,)
+            params = (category,)
             cursor = self.database.execute(query, params)
             
             # for row in cursor.fetchall():
@@ -214,7 +207,11 @@ class BBCSounds:
             count, last_updated = cursor.fetchone()
 
             if count == 0:
-                self.logger.info(f"BBC 'sounds' table was empty for category {self.category}")
+                self.logger.info(f"BBC 'sounds' table was empty for category {category}")
+                return False;
+
+            if count != category_size:
+                self.logger.info(f"BBC sounds category {category} size changed from {count} to {category_size}.")
                 return False;
 
             if last_updated:
@@ -230,23 +227,30 @@ class BBCSounds:
                     self.logger.info(f"📦 Cache is {days_old:.0f} days old - refreshing")
                     return False
 
-                self.logger.info(f"Found bbc sounds cache for {self.category} category.")
+                self.logger.info(f"Found bbc sounds cache for {category} category.")
 
                 return True
             else:
-                self.logger.error(f"Category {self.category} has problems with last_updated in sounds table")
+                self.logger.error(f"Category {category} has problems with last_updated in sounds table")
                 return False;
         
         except sqlite3.OperationalError:
             self.logger.error("sqlite operational error in check_sounds_cache_for_category")
             return False
 
-    def get_sounds_data(self):
+    def update_sounds_data(self, category: str, category_size: int):
+        sound_db = self.download_sounds_data(category, category_size)
+        self.cache_sounds_data(category, sound_db)
 
-        self.logger.info(f"Getting bbc sounds data for category {self.category}")
+    def get_sounds_data(self, category: str, category_size: int):
+
+        self.logger.info(f"Getting bbc sounds data for category {category}")
+        
+        if not self.check_sounds_cache_for_category(category, category_size):
+            self.update_sounds_data(category, category_size)
 
         query = "SELECT id, name FROM categories WHERE name = ?"
-        params = (self.category,)
+        params = (category,)
         cursor = self.database.execute(query,params)
         self.logger.info(f"{cursor.fetchone()}")
 
@@ -263,7 +267,7 @@ class BBCSounds:
             JOIN categories c ON sc.category_id = c.id
             WHERE c.name = ?
             """
-        params = (self.category,)
+        params = (category,)
 
         cursor = self.database.execute(query, params)
 
@@ -301,21 +305,25 @@ class BBCSounds:
         print(f"✅ Downloaded to {save_path}")
 
 
-    def get_list_of_sounds(self):
-        sounds_data = self.get_sounds_data()
+    def get_printable_sounds_data(self, category: str, category_size: int):
+        """Returns a printable array of sounds, delimiter is '|' sign."""
+        category_size = int(category_size)
+        sounds_data = self.get_sounds_data(category, category_size)
         list_of_sounds = []
         for row in sounds_data:
             sound_id = row[0]
             sound_description: str = row[1]
             sound_duration = row[2]
             sound_favourite = row[3]
-            sound_favourite = 1
-            if sound_favourite == 1:
-                sound_favourite = "🌟"
-            else:
-                sound_favourite = ""
 
-            list_of_sounds.append(f"{sound_id}|{sound_description}|{sound_duration}|{sound_favourite}")
+            if sound_favourite == 1:
+                favourite_emoji = "⭐ "
+            else:
+                favourite_emoji = ""
+
+            is_favourite = sound_favourite == 1
+
+            list_of_sounds.append(f"{sound_id}|{sound_description}|{sound_duration}|{is_favourite}|{favourite_emoji}")
         # list_of_sounds = [f"{row[0]}|{row[1]}|{row[2]}" for row in sounds_data]
         return list_of_sounds
 
@@ -336,6 +344,8 @@ class BBCSounds:
         # umschalten 1-0 0-1
         new_value = 1 - result[0]
 
+        self.logger.debug(f"Setting {sound_id} to {new_value}")
+
         query = """
             UPDATE sounds
             SET favourite = ?, last_updated = CURRENT_TIMESTAMP
@@ -343,6 +353,26 @@ class BBCSounds:
         """
         params = (new_value, sound_id)
         self.database.execute(query, params)
+        self.database.commit()
         return True
+
+    def is_favourite(self, sound_id):
+        query = """
+            SELECT favourite
+            FROM sounds
+            WHERE ID = ?
+        """
+        params = (sound_id,)
+        cursor = self.database.execute(query, params)
+
+        result = cursor.fetchone()
+        if result is None:
+            self.logger.warning(f"Can't check favourite status for an unknown sound at id: {sound_id}")
+            return False
+
+        is_favourite = result[0]
+
+        return is_favourite == 1
+
 
 

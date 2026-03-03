@@ -173,20 +173,14 @@ open_fzf_menu() {
 
   if [[ "$sample_list" == "true" ]]; then
 
-    fzf_args+=(--bind 'ctrl-f:execute(
+    fzf_args+=(--bind 'tab:execute(
         sound_id=$(echo {} | cut -d"|" -f1)
         python3 -m src.main toggle_favourite "${sound_id}"
-      )')
-    fzf_args+=(--bind 'ctrl-f:+refresh-preview')
-    fzf_args+=(--bind 'ctrl-d:execute(
-        sound_id=$(echo {} | cut -d"|" -f1)
-        python3 -m src.main bbc_download_preview_sound "${sound_id}" "${SOUND_CATEGORY}"
-      )')
+      )+refresh-preview')
     
     # These mpv process PID gymnastics were necessary to neatly kill the process in background
     # So that the fzf window doesnt blick unpleasantly when the main process is blocked
     fzf_args+=(--bind 'focus:execute(
-
         last_pid=$( cat "${CURRENT_MPV_PROCESS_PID_FILE}" )
         if [[ -n "${last_pid}" ]] && kill -0 "${last_pid}" 2>/dev/null; then
           kill "${last_pid}" 2>/dev/null &
@@ -232,13 +226,18 @@ open_fzf_menu() {
         echo "AUTO MODE IS ON"
       fi
     '
-
   fi
     
   fzf_args+=(--preview "$preview_content")
 
-  # Convert data to a single multiline string
-  # TODO This is pretty cool, make notes on printg and how the array is being passed here
+  # OK, SO.
+  # This is a neat little magic trick.
+  # It works regardles if data is a string or an array.
+  # Actually it mostly works when it is an array.
+  # When it is a string it basically does nothing, only adds one \n newline at the end of it.
+  # This works because stringy variable accessed with [@] just returns the full string.
+  # But it transforms an array into an \n-separated string.
+  # Which is what we want for fzf
   local fzf_input=$(printf '%s\n' "${data[@]}")
 
   local selection=$(echo "$fzf_input" | fzf "${fzf_args[@]}")
@@ -276,15 +275,16 @@ open_bbc_categories_menu() {
     [preview_content]='
       id=$(echo {} | cut -d"|" -f1)
       description=$(echo {} | cut -d"|" -f2)
+      original_favourite=$(echo {} | cut -d"|" -f4)
       echo "\e[0;97mID: \e[1;37m$id"
       echo "\e[0;97mDescription: \e[1;32m$description"
-      echo "\e[0;97mDrücke Ctrl-F zum Togglen"
       echo ""
       
       fav=$(python3 -m src.main is_favourite "$id")
-      if [[ "$fav" == "1" ]]; then
+      if [[ "$fav" == "True" ]]; then
         echo "\e[1;37mFAVORIT \e[5m⭐"
       fi
+        echo $original_favourite
       
       echo "\e[0;97m"
       echo "Comment: No I do not know how to get rid of the trailing | sign <3"
@@ -294,7 +294,7 @@ open_bbc_categories_menu() {
     [info_content]='[Arrows] Navigate [Enter] Confirm selected category.'
     [list_label]="BBC Sound Effects for ${category_name} category"
     [preview_label]='Category Info'
-    [with_nth]='4,2'
+    [with_nth]='5,2'
     [sample_list]=true
     [sound_category]="${category_name}"
     # [bindings_array]="sounds_bindings"
