@@ -19,8 +19,9 @@ def main():
     # bbc categories subparser
     bbc_categories_parser = subparsers.add_parser("bbc_get_categories")
 
-    toggle_favourite_parser = subparsers.add_parser("toggle_favourite")
-    toggle_favourite_parser.add_argument("sound_id")
+    set_favourite_parser = subparsers.add_parser("set_favourite")
+    set_favourite_parser.add_argument("value")
+    set_favourite_parser.add_argument("sound_id")
 
     is_favourite_parser = subparsers.add_parser("is_favourite")
     is_favourite_parser.add_argument("sound_id")
@@ -49,13 +50,14 @@ def main():
     elif args.command == "bbc_get_sounds_data":
         bbc_sounds = BBCSounds()
         sounds_list = bbc_sounds.get_printable_sounds_data(args.category, args.category_size)
-        logger.warning(sounds_list[0])
         for val in sounds_list:
-           print(f"{val}")
+           print(val)
 
-    elif args.command == "toggle_favourite":
+    elif args.command == "set_favourite":
         bbc_sounds = BBCSounds()
-        bbc_sounds.toggle_favourite(args.sound_id)
+        value = bool(args.value)
+        sound_id = str(args.sound_id)
+        bbc_sounds.set_favourite(value, sound_id)
 
     elif args.command == "is_favourite":
         bbc_sounds = BBCSounds()

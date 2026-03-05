@@ -173,9 +173,14 @@ open_fzf_menu() {
 
   if [[ "$sample_list" == "true" ]]; then
 
-    fzf_args+=(--bind 'tab:execute(
+    fzf_args+=(--bind 'right:execute(
         sound_id=$(echo {} | cut -d"|" -f1)
-        python3 -m src.main toggle_favourite "${sound_id}"
+        python3 -m src.main set_favourite "True" "${sound_id}" &
+      )+refresh-preview')
+
+    fzf_args+=(--bind 'left:execute(
+        sound_id=$(echo {} | cut -d"|" -f1)
+        python3 -m src.main set_favourite "False" "${sound_id}" &
       )+refresh-preview')
     
     # These mpv process PID gymnastics were necessary to neatly kill the process in background

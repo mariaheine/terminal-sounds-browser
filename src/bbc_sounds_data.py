@@ -356,6 +356,31 @@ class BBCSounds:
         self.database.commit()
         return True
 
+    def set_favourite(self, value: bool, sound_id: str):
+        query = """
+            SELECT favourite
+            FROM sounds
+            WHERE id = ?
+        """
+        params = (sound_id,)
+        cursor = self.database.execute(query, params)
+        self.logger.debug(f"setttin fav {value} foor {sound_id} is {value == True}")
+
+        result = cursor.fetchone()
+        if result is None:
+            self.logger.warning(f"Can't toggle favourite on an unknown sound with id {sound_id}")
+            return False
+
+        query = """
+            UPDATE sounds
+            SET favourite = ?, last_updated = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """
+        params = (value, sound_id)
+        self.database.execute(query, params)
+        self.database.commit()
+        return True
+
     def is_favourite(self, sound_id):
         query = """
             SELECT favourite
