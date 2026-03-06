@@ -9,7 +9,7 @@ class Database:
         self.logger = Logger()
         self.verbose = verbose
 
-    def execute(self, query, params = None, silent=False):
+    def execute(self, query, params = None, silent=True):
 
         cursor = self.conn.cursor()
 

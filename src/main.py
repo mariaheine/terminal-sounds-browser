@@ -35,6 +35,9 @@ def main():
     bbc_sounds_parser.add_argument("category")
     bbc_sounds_parser.add_argument("category_size")
 
+    log_debug = subparsers.add_parser("log_debug")
+    log_debug.add_argument("message")
+
     args = parser.parse_args()
 
     logger = Logger()
@@ -67,6 +70,10 @@ def main():
     elif args.command == "bbc_download_preview_sound":
         bbc_downloader = BBCSoundDownloader(logger, args.category, args.sound_id)
         bbc_downloader.download_preview_sound()
+
+    elif args.command == "log_debug":
+        message = args.message
+        logger.debug(message)
     
     else: 
         print(f"unknown command {args.command}")

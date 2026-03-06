@@ -33,6 +33,9 @@ readonly CURRENT_MPV_PROCESS_PID_FILE="/tmp/tsb_current_mpv_pid_$$"
 echo "" > "$CURRENT_MPV_PROCESS_PID_FILE"
 export CURRENT_MPV_PROCESS_PID_FILE
 
+readonly CURRENT_FOCUSED_SONG_ID="/tmp/tsb_current_focused_song_id_$$"
+> "$CURRENT_FOCUSED_SONG_ID"
+export CURRENT_FOCUSED_SONG_ID
 
 readonly BBC_MPV_TAG="term-mpv-$$"
 export BBC_MPV_TAG
@@ -186,25 +189,60 @@ open_fzf_menu() {
     # These mpv process PID gymnastics were necessary to neatly kill the process in background
     # So that the fzf window doesnt blick unpleasantly when the main process is blocked
     fzf_args+=(--bind 'focus:execute(
-        last_pid=$( cat "${CURRENT_MPV_PROCESS_PID_FILE}" )
-        if [[ -n "${last_pid}" ]] && kill -0 "${last_pid}" 2>/dev/null; then
-          kill "${last_pid}" 2>/dev/null &
+        if [[ -f "${CURRENT_MPV_PROCESS_PID_FILE}" ]]; then
+          last_pid=$( cat "${CURRENT_MPV_PROCESS_PID_FILE}" 2>/dev/null )
+          if [[ -n "${last_pid}" ]] && kill -0 "${last_pid}" 2>/dev/null; then
+            ( kill "${last_pid}" 2>/dev/null; rm -f "${CURRENT_MPV_PROCESS_PID_FILE}" ) &
+          fi
         fi
-        sound_id=$(echo {} | cut -d"|" -f1)
-        filepath="${BBC_SOUNDS_CACHE_DIR}"/'"${sound_category}"'/"${sound_id}"
 
-        if [[ -f "${filepath}.mp3" ]] && [[ ! -f "${filepath}.mp3.tmp" ]]; then
-          mpv --no-video --no-terminal --loop=inf --title="${BBC_MPV_TAG}" "${filepath}.mp3" &
-          echo "$!" > "${CURRENT_MPV_PROCESS_PID_FILE}"
-        else
-          python3 -m src.main bbc_download_preview_sound "${sound_id}" '"${sound_category}"' &
-          (
-            while [[ -f "${filepath}.mp3.tmp" ]] || [[ ! -f "${filepath}.mp3" ]]; do
-              sleep 0.5
-            done
+        sound_id=$(echo {} | cut -d"|" -f1)
+        echo "$sound_id" > "${CURRENT_FOCUSED_SONG_ID}"
+        #python3 -m src.main log_debug "sound_id: ${sound_id}"
+
+        #echo "DEBUG: Passing array name: ${sound_id}" >&2
+        filepath="${BBC_SOUNDS_CACHE_DIR}"/'"${sound_category}"'/"${sound_id}"
+        
+        (
+          sleep 0.35
+
+          focused_song_id=$(cat "${CURRENT_FOCUSED_SONG_ID}")
+
+          if [[ "${focused_song_id}" != "${sound_id}" ]]; then
+            # python3 -m src.main log_debug "Exiting cos ${focused_song_id} != ${sound_id}" >&2
+            exit 0
+          fi
+
+          if [[ -f "${CURRENT_MPV_PROCESS_PID_FILE}" ]]; then
+            final_last_pid=$( cat "${CURRENT_MPV_PROCESS_PID_FILE}" 2>/dev/null )
+            if [[ -n "${final_last_pid}" ]] && kill -0 "${final_last_pid}" 2>/dev/null; then
+              kill "${last_pid}" 2>/dev/null; 
+              sleep 0.05
+            else
+              #python3 -m src.main log_debug "No process to kill: ${final_last_pid}"
+            fi
+          else
+            #python3 -m src.main log_debug "Noo current mpv process file."
+          fi
+
+          if [[ -f "${filepath}.mp3" ]] && [[ ! -f "${filepath}.mp3.tmp" ]]; then
+            echo "playing ${filepath}" >&2
             mpv --no-video --no-terminal --loop=inf --title="${BBC_MPV_TAG}" "${filepath}.mp3" &
-          ) &
-        fi
+            echo "$!" > "${CURRENT_MPV_PROCESS_PID_FILE}"
+          else
+            python3 -m src.main bbc_download_preview_sound "${sound_id}" '"${sound_category}"' &
+            (
+              while [[ -f "${filepath}.mp3.tmp" ]] || [[ ! -f "${filepath}.mp3" ]]; do
+                sleep 0.5
+              done
+              current_focus_after_dl=$(cat "${CURRENT_FOCUSED_SONG_ID}" 2>/dev/null)
+              if [[ "${current_focus_after_dl}" == "${sound_id}" ]]; then
+                mpv --no-video --no-terminal --loop=inf --title="${BBC_MPV_TAG}" "${filepath}.mp3" &
+                echo "$!" > "${CURRENT_MPV_PROCESS_PID_FILE}"
+              fi
+              ) &
+            fi
+          ) & 
       )')
 
     # try with below which uses " and explicit escaping
@@ -281,6 +319,7 @@ open_bbc_categories_menu() {
       id=$(echo {} | cut -d"|" -f1)
       description=$(echo {} | cut -d"|" -f2)
       original_favourite=$(echo {} | cut -d"|" -f4)
+      echo " "
       echo "\e[0;97mID: \e[1;37m$id"
       echo "\e[0;97mDescription: \e[1;32m$description"
       echo ""
@@ -289,7 +328,7 @@ open_bbc_categories_menu() {
       if [[ "$fav" == "True" ]]; then
         echo "\e[1;37mFAVORIT \e[5m⭐"
       fi
-        echo $original_favourite
+      #echo $original_favourite
       
       echo "\e[0;97m"
       echo "Comment: No I do not know how to get rid of the trailing | sign <3"
