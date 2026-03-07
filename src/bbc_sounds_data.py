@@ -252,13 +252,6 @@ class BBCSounds:
         query = "SELECT id, name FROM categories WHERE name = ?"
         params = (category,)
         cursor = self.database.execute(query,params)
-        self.logger.info(f"{cursor.fetchone()}")
-
-        # query = "SELECT duration FROM sounds "
-        # cursor = self.database.execute(query)
-        # rows = cursor.fetchall()
-        # for row in rows[:5]:
-        #     self.logger.info(f"{row}")
 
         query = """
             SELECT s.id, s.description, s.duration, s.favourite

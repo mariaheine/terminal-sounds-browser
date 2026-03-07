@@ -55,13 +55,7 @@ print(f'LOG_FILE_NAME={LOG_FILE_NAME}')
 print(f'BBC_SOUNDS_CACHE_DIR={BBC_SOUNDS_CACHE_DIR}')
 ")
 
-# TODO so what is actually the type returned by multiple pythin prints
-echo "oik"
-echo "${CONSTANTS}"
-# echo "${CONSTANTS[@]}"
-# echo "${CONSTANTS[*]}"
-echo "endoik"
-
+# TODO
 while IFS= read -r line; do
     export "$line"
 done <<< "$CONSTANTS"
@@ -93,12 +87,11 @@ trap cleanup EXIT INT TERM KILL # is that an overkill?
 check_fzf() {
 
   if ! command -v fzf &> /dev/null; then
-    echo "ERROR: fzf is not installed"
+    echo "🔥 ERROR: fzf is not installed"
     echo "go to https://github.com/junegunn/fzf"
     echo "please use git clone installation!"
     echo "otherwise you might get an outdated version 😿" 
-    echo "on Ubuntu with apt you will def get an outdated one"
-    echo "required 0.48+"
+    echo "0.48+ is required"
     return 1
   fi
 
@@ -107,14 +100,14 @@ check_fzf() {
   local user_version=$(echo ${user_full_version} | cut -d'.' -f2)
 
   if (( $user_version < $min_version )); then
-    echo "ERROR: required fzf version 0.48+ while yours is $user_full_version"
+    echo "🔥 ERROR: required fzf version 0.48+ while yours is $user_full_version"
     echo "go to https://github.com/junegunn/fzf"
     echo "please use git clone installation!"
     echo "otherwise you might get an outdated version 😿"
-    echo "on Ubuntu with apt you will def get an outdated one"
+    echo "0.48+ is required"
     return 1
   else
-    echo "🍰 fzf version: $user_full_version - Neat! Min 0.48+ is required, proceeding."
+    echo "🍰 fzf version: {$user_full_version}, neat! min 0.48+ is required, proceeding."
   fi
 }
 
@@ -143,12 +136,10 @@ open_fzf_menu() {
   local preview_content="${config[preview_content]:-'No preview set'}"
   local sample_list="${config[sample_list]:-false}"
   local sound_category="${config[sound_category]:-''}"
-  # local bindings="${config[bindings]:-()}"
   
   #echo "DEBUG: RECONSTRUCTED contents: ${listed_elements[@]}" >&2
 
   local fzf_args=(
-    # --sync
     --style full
     --border --padding 1,1
     --border-label "'° BBC Sound Effect Browser °'"
@@ -192,24 +183,20 @@ open_fzf_menu() {
         if [[ -f "${CURRENT_MPV_PROCESS_PID_FILE}" ]]; then
           last_pid=$( cat "${CURRENT_MPV_PROCESS_PID_FILE}" 2>/dev/null )
           if [[ -n "${last_pid}" ]] && kill -0 "${last_pid}" 2>/dev/null; then
-            ( kill "${last_pid}" 2>/dev/null; rm -f "${CURRENT_MPV_PROCESS_PID_FILE}" ) &
+            ( kill "${last_pid}" 2>/dev/null ) &
           fi
         fi
 
         sound_id=$(echo {} | cut -d"|" -f1)
         echo "$sound_id" > "${CURRENT_FOCUSED_SONG_ID}"
-        #python3 -m src.main log_debug "sound_id: ${sound_id}"
-
-        #echo "DEBUG: Passing array name: ${sound_id}" >&2
         filepath="${BBC_SOUNDS_CACHE_DIR}"/'"${sound_category}"'/"${sound_id}"
         
         (
           sleep 0.35
-
+          
           focused_song_id=$(cat "${CURRENT_FOCUSED_SONG_ID}")
 
           if [[ "${focused_song_id}" != "${sound_id}" ]]; then
-            # python3 -m src.main log_debug "Exiting cos ${focused_song_id} != ${sound_id}" >&2
             exit 0
           fi
 
@@ -218,17 +205,14 @@ open_fzf_menu() {
             if [[ -n "${final_last_pid}" ]] && kill -0 "${final_last_pid}" 2>/dev/null; then
               kill "${last_pid}" 2>/dev/null; 
               sleep 0.05
-            else
-              #python3 -m src.main log_debug "No process to kill: ${final_last_pid}"
             fi
-          else
-            #python3 -m src.main log_debug "Noo current mpv process file."
           fi
 
           if [[ -f "${filepath}.mp3" ]] && [[ ! -f "${filepath}.mp3.tmp" ]]; then
-            echo "playing ${filepath}" >&2
             mpv --no-video --no-terminal --loop=inf --title="${BBC_MPV_TAG}" "${filepath}.mp3" &
-            echo "$!" > "${CURRENT_MPV_PROCESS_PID_FILE}"
+            echo "$!" > "${CURRENT_MPV_PROCESS_PID_FILE}" || {
+              python3 -m src.main log "error" "Could not write MPV PID at ${CURRENT_MPV_PROCESS_PID_FILE}."
+            }
           else
             python3 -m src.main bbc_download_preview_sound "${sound_id}" '"${sound_category}"' &
             (
@@ -307,19 +291,32 @@ open_bbc_categories_menu() {
   )
 
   local category=$(open_fzf_menu 'bbc_categories_config')
-  local category_name=$(echo "${category}" | cut -d' ' -f1)
-  local category_size=$(echo "${category}" | cut -d' ' -f2)
 
+  if [[ -n "${category}" ]]; then
+    local category_name=$(echo "${category}" | cut -d' ' -f1)
+    local category_size=$(echo "${category}" | cut -d' ' -f2)
+    open_bbc_sounds_list "${category_name}" "${category_size}"
+  else
+    open_main_menu
+  fi
+}
+
+open_bbc_sounds_list() {
+
+  local category_name="${1}"
+  local category_size="${2}"
+
+  echo "📖 Loading BBC sounds list for category ${category_name}"
   local bbc_sounds=$(python3 -m src.main bbc_get_sounds_data "${category_name}" "${category_size}")
 
-  declare -A bbc_sounds_config=(
+  declare -A bbc_sound_list_config=(
     [data]='bbc_sounds'
     [use_multi]=true
     [preview_content]='
       id=$(echo {} | cut -d"|" -f1)
       description=$(echo {} | cut -d"|" -f2)
       original_favourite=$(echo {} | cut -d"|" -f4)
-      echo " "
+      echo " " # UMMMM, A LITTLE HACK cos i didnt figue out what causes the first echo to be sometimes printed twice
       echo "\e[0;97mID: \e[1;37m$id"
       echo "\e[0;97mDescription: \e[1;32m$description"
       echo ""
@@ -341,17 +338,14 @@ open_bbc_categories_menu() {
     [with_nth]='5,2'
     [sample_list]=true
     [sound_category]="${category_name}"
-    # [bindings_array]="sounds_bindings"
   )
 
-  # sounds_bindings=(
-  #     "ctrl-d:execute(
-  #       sound_id=$(echo {} | cut -d"|" -f1)
-  #       python3 -m src.main bbc_download_preview_sound \"\${sound_id}\" \"\${SOUND_CATEGORY}\"
-  #     )"
-  # )
-
-  local sounds=$(open_fzf_menu 'bbc_sounds_config')
+  open_fzf_menu 'bbc_sound_list_config' 1>/dev/null
+  last_pid=$( cat "${CURRENT_MPV_PROCESS_PID_FILE}" )
+  if [[ -n "${last_pid}" ]] && kill -0 "${last_pid}" 2>/dev/null; then
+    ( kill "${last_pid}" 2>/dev/null ) &
+  fi
+  open_bbc_categories_menu
 }
 
 open_main_menu() {
@@ -383,7 +377,7 @@ open_main_menu() {
   # echo "DEBUG: Array contents: ${menu_elements[@]}" >&2
 
   local selected=$(open_fzf_menu 'menu_config')
-
+  
   case "${selected}" in
     "$menu_option_1")
       open_bbc_categories_menu 
@@ -392,7 +386,6 @@ open_main_menu() {
       echo "Goodbaiii 🐱"
       ;;
     *)
-      echo "derp menu option: ${selected}"
       ;;
    esac
 }
@@ -413,7 +406,7 @@ open_main_menu() {
 # echo "If you mess up, go to your config."
 # echo "🐖 It is in vi mode, you can't [Esc]ape it <evil laugher>"
 #
-# set -o vi # lol, 🧨
+# set -o vi # lol 🧨
 #
 # read -e -p "download path: " download_dir
 # echo "selected download dir: $download_dir"

@@ -24,10 +24,10 @@ class DownloadWorker:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
 
-                self.logger.warning(f"done {self.download_path}")
+                self.logger.info(f"Download complete, file: {self.download_path}")
                 temp_file.rename(self.download_path)
             else:
-                self.logger.error(f"Download bbc preview sound failed, status code: {response.status_code}")
+                self.logger.error(f"Download failed, url: {self.url}, status code: {response.status_code}")
                 return None
 
         except Exception as e:

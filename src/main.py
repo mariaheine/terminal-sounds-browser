@@ -35,8 +35,9 @@ def main():
     bbc_sounds_parser.add_argument("category")
     bbc_sounds_parser.add_argument("category_size")
 
-    log_debug = subparsers.add_parser("log_debug")
-    log_debug.add_argument("message")
+    log = subparsers.add_parser("log")
+    log.add_argument("level")
+    log.add_argument("message")
 
     args = parser.parse_args()
 
@@ -71,9 +72,17 @@ def main():
         bbc_downloader = BBCSoundDownloader(logger, args.category, args.sound_id)
         bbc_downloader.download_preview_sound()
 
-    elif args.command == "log_debug":
+    elif args.command == "log":
+        level = args.level
         message = args.message
-        logger.debug(message)
+        if level == "info":
+            logger.info(message)
+        elif level == "debug":
+            logger.debug(message)
+        elif level == "error":
+            logger.error(message)
+        else:
+            logger.error(f"Unhandled log type: {level}")
     
     else: 
         print(f"unknown command {args.command}")
