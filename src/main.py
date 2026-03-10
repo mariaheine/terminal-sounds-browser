@@ -30,10 +30,12 @@ def main():
     bbc_download_preview_parser.add_argument("sound_id")
     bbc_download_preview_parser.add_argument("category")
 
-    # bbc sounds subparser
     bbc_sounds_parser = subparsers.add_parser("bbc_get_sounds_data")
     bbc_sounds_parser.add_argument("category")
     bbc_sounds_parser.add_argument("category_size")
+
+    set_was_listened_parser = subparsers.add_parser("set_was_listened")
+    set_was_listened_parser.add_argument("sound_id")
 
     log = subparsers.add_parser("log")
     log.add_argument("level")
@@ -47,6 +49,7 @@ def main():
         bbc_categories = BBCCategories()
         categories = bbc_categories.get_categories()
         for key, val in categories.items():
+            # TODO move formatting into get categories
             category_name = key
             category_size = val
             print(f"{category_name} {category_size}")
@@ -54,6 +57,8 @@ def main():
     elif args.command == "bbc_get_sounds_data":
         bbc_sounds = BBCSounds()
         sounds_list = bbc_sounds.get_printable_sounds_data(args.category, args.category_size)
+        for val in sounds_list[:10]:
+            logger.debug(val)
         for val in sounds_list:
            print(val)
 
@@ -65,12 +70,18 @@ def main():
 
     elif args.command == "is_favourite":
         bbc_sounds = BBCSounds()
-        is_favourite = bbc_sounds.is_favourite(args.sound_id)
+        sound_id = str(args.sound_id)
+        is_favourite = bbc_sounds.is_favourite(sound_id)
         print(is_favourite)
 
     elif args.command == "bbc_download_preview_sound":
-        bbc_downloader = BBCSoundDownloader(logger, args.category, args.sound_id)
-        bbc_downloader.download_preview_sound()
+        bbc_downloader = BBCSoundDownloader()
+        bbc_downloader.download_preview_sound(args.category, args.sound_id)
+
+    elif args.command == "set_was_listened":
+        bbc_sounds = BBCSounds()
+        sound_id = str(args.sound_id)
+        logger.debug(f"set was listened for {sound_id}")
 
     elif args.command == "log":
         level = args.level

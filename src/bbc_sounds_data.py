@@ -94,10 +94,22 @@ class BBCSounds:
                 description TEXT NOT NULL,
                 duration REAL NOT NULL,
                 favourite BOOLEAN DEFAULT 0,
+                was_listened BOOLEAN DEFAULT 0,
                 last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """
         self.database.execute(query)
+        self.database.commit()
+
+        # TODO remove migration
+        if not self.database.column_exists("sounds", "was_listened"):
+            self.logger.debug("Added was_listened column.")
+            query = """
+                ALTER TABLE sounds
+                ADD COLUMN was_listened BOOLEAN DEFAULT 0
+            """
+            self.database.execute(query)
+            self.database.commit()
 
         # Junction Table
         # categories 2 sounds
@@ -112,6 +124,7 @@ class BBCSounds:
            )
         """
         self.database.execute(query)
+        self.database.commit()
 
         indexes = [
             # TODO wouldn't it be cleaner to make the cat title index where cat table is?
@@ -321,6 +334,11 @@ class BBCSounds:
         return list_of_sounds
 
     def toggle_favourite(self, sound_id):
+
+        if not sound_id:
+            self.logger.error("Attempted to toggle_favourite for a null or empty sound_id.")
+            return False
+
         query = """
             SELECT favourite
             FROM sounds
@@ -350,6 +368,14 @@ class BBCSounds:
         return True
 
     def set_favourite(self, value: bool, sound_id: str):
+        
+        if not sound_id:
+            self.logger.error("Attempted to set_favourite for a null or empty sound_id.")
+            return False
+        
+        if value is None:
+            self.logger.error("Attempted to set_favourite for a null value.")
+
         query = """
             SELECT favourite
             FROM sounds
@@ -375,6 +401,11 @@ class BBCSounds:
         return True
 
     def is_favourite(self, sound_id):
+
+        if not sound_id:
+            self.logger.error("Asked if sound is_favourite for a null or empty sound_id.")
+            return False
+
         query = """
             SELECT favourite
             FROM sounds
@@ -385,7 +416,7 @@ class BBCSounds:
 
         result = cursor.fetchone()
         if result is None:
-            self.logger.warning(f"Can't check favourite status for an unknown sound at id: {sound_id}")
+            self.logger.error(f"Can't check favourite status for an unknown sound at id: {sound_id}")
             return False
 
         is_favourite = result[0]

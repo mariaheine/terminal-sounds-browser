@@ -35,4 +35,11 @@ class Database:
     def commit(self):
         self.conn.commit()
 
+    def column_exists(self, table_name, column_name):
+        cursor = self.execute("""
+            SELECT COUNT(*) FROM pragma_table_info(?)
+            WHERE name = ?
+        """, (table_name, column_name))
+        return cursor.fetchone()[0] > 0
+
 
