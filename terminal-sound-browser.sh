@@ -2,11 +2,11 @@
 
 set -euo pipefail
 
-#  ____                             __                    __                          
-# /\  _`\                          /\ \__                /\ \__  __                   
-# \ \ \/\_\    ___     ___     ____\ \ ,_\    __      ___\ \ ,_\/\_\    ___      __   
-#  \ \ \/_/_  / __`\ /' _ `\  /',__\\ \ \/  /'__`\  /' _ `\ \ \/\/\ \ /' _ `\  /'__`\ 
-#   \ \ \L\ \/\ \L\ \/\ \/\ \/\__, `\\ \ \_/\ \L\.\_/\ \/\ \ \ \_\ \ \/\ \/\ \/\  __/ 
+#  ____                             __                    __
+# /\  _`\                          /\ \__                /\ \__  __
+# \ \ \/\_\    ___     ___     ____\ \ ,_\    __      ___\ \ ,_\/\_\    ___      __
+#  \ \ \/_/_  / __`\ /' _ `\  /',__\\ \ \/  /'__`\  /' _ `\ \ \/\/\ \ /' _ `\  /'__`\
+#   \ \ \L\ \/\ \L\ \/\ \/\ \/\__, `\\ \ \_/\ \L\.\_/\ \/\ \ \ \_\ \ \/\ \/\ \/\  __/
 #    \ \____/\ \____/\ \_\ \_\/\____/ \ \__\ \__/.\_\ \_\ \_\ \__\\ \_\ \_\ \_\ \____\
 #     \/___/  \/___/  \/_/\/_/\/___/   \/__/\/__/\/_/\/_/\/_/\/__/ \/_/\/_/\/_/\/____/
 #
@@ -26,15 +26,15 @@ readonly PYTHONPATH="${PYTHONPATH:-}:$SCRIPT_DIR"
 export PYTHONPATH
 
 readonly AUTO_MODE_FILE="/tmp/tsb_auto_mode_$$" # $$ is process id
-echo "false" > "$AUTO_MODE_FILE"
+echo "false" >"$AUTO_MODE_FILE"
 export AUTO_MODE_FILE
 
 readonly CURRENT_MPV_PROCESS_PID_FILE="/tmp/tsb_current_mpv_pid_$$"
-echo "" > "$CURRENT_MPV_PROCESS_PID_FILE"
+echo "" >"$CURRENT_MPV_PROCESS_PID_FILE"
 export CURRENT_MPV_PROCESS_PID_FILE
 
 readonly CURRENT_FOCUSED_SONG_ID="/tmp/tsb_current_focused_song_id_$$"
-> "$CURRENT_FOCUSED_SONG_ID"
+>"$CURRENT_FOCUSED_SONG_ID"
 export CURRENT_FOCUSED_SONG_ID
 
 readonly BBC_MPV_TAG="term-mpv-$$"
@@ -57,40 +57,40 @@ print(f'BBC_SOUNDS_CACHE_DIR={BBC_SOUNDS_CACHE_DIR}')
 
 # TODO
 while IFS= read -r line; do
-    export "$line"
-done <<< "$CONSTANTS"
+  export "$line"
+done <<<"$CONSTANTS"
 
 #
-#  ____    ___                                             
-# /\  _`\ /\_ \                                            
-# \ \ \/\_\//\ \      __     __      ___   __  __  _____   
-#  \ \ \/_/_\ \ \   /'__`\ /'__`\  /' _ `\/\ \/\ \/\ '__`\ 
+#  ____    ___
+# /\  _`\ /\_ \
+# \ \ \/\_\//\ \      __     __      ___   __  __  _____
+#  \ \ \/_/_\ \ \   /'__`\ /'__`\  /' _ `\/\ \/\ \/\ '__`\
 #   \ \ \L\ \\_\ \_/\  __//\ \L\.\_/\ \/\ \ \ \_\ \ \ \L\ \
 #    \ \____//\____\ \____\ \__/.\_\ \_\ \_\ \____/\ \ ,__/
-#     \/___/ \/____/\/____/\/__/\/_/\/_/\/_/\/___/  \ \ \/ 
-#                                                    \ \_\ 
+#     \/___/ \/____/\/____/\/__/\/_/\/_/\/_/\/___/  \ \ \/
+#                                                    \ \_\
 # AND TRAP                                            \/_/
 
 cleanup() {
   rm -f "$AUTO_MODE_FILE"
   rm -f "$CURRENT_MPV_PROCESS_PID_FILE"
-  pkill -f "${BBC_MPV_TAG}" # kill running mpv processes 
+  pkill -f "${BBC_MPV_TAG}" # kill running mpv processes
 }
 
 clear_log_file() {
   mkdir -p "${LOGS_DIR}"
-  > "${LOGS_DIR}/${LOG_FILE_NAME}"
+  >"${LOGS_DIR}/${LOG_FILE_NAME}"
 }
 
 trap cleanup EXIT INT TERM KILL # is that an overkill?
 
 check_fzf() {
 
-  if ! command -v fzf &> /dev/null; then
+  if ! command -v fzf &>/dev/null; then
     echo "🔥 ERROR: fzf is not installed"
     echo "go to https://github.com/junegunn/fzf"
     echo "please use git clone installation!"
-    echo "otherwise you might get an outdated version 😿" 
+    echo "otherwise you might get an outdated version 😿"
     echo "0.48+ is required"
     return 1
   fi
@@ -99,7 +99,7 @@ check_fzf() {
   local user_full_version=$(fzf --version)
   local user_version=$(echo ${user_full_version} | cut -d'.' -f2)
 
-  if (( $user_version < $min_version )); then
+  if (($user_version < $min_version)); then
     echo "🔥 ERROR: required fzf version 0.48+ while yours is $user_full_version"
     echo "go to https://github.com/junegunn/fzf"
     echo "please use git clone installation!"
@@ -111,14 +111,18 @@ check_fzf() {
   fi
 }
 
-#    ___            ___                                             
-#  /'___\         /'___\                                            
-# /\ \__/  ____  /\ \__/           ___ ___      __    ___   __  __  
-# \ \ ,__\/\_ ,`\\ \ ,__\_______ /' __` __`\  /'__`\/' _ `\/\ \/\ \ 
+#    ___            ___
+#  /'___\         /'___\
+# /\ \__/  ____  /\ \__/           ___ ___      __    ___   __  __
+# \ \ ,__\/\_ ,`\\ \ ,__\_______ /' __` __`\  /'__`\/' _ `\/\ \/\ \
 #  \ \ \_/\/_/  /_\ \ \_/\______\/\ \/\ \/\ \/\  __//\ \/\ \ \ \_\ \
 #   \ \_\   /\____\\ \_\\/______/\ \_\ \_\ \_\ \____\ \_\ \_\ \____/
 #    \/_/   \/____/ \/_/          \/_/\/_/\/_/\/____/\/_/\/_/\/___/
 #
+
+# load_soundplay_strategy() {
+#   local strategy = $(cat)
+# }
 
 open_fzf_menu() {
 
@@ -136,7 +140,8 @@ open_fzf_menu() {
   local preview_content="${config[preview_content]:-'No preview set'}"
   local sample_list="${config[sample_list]:-false}"
   local sound_category="${config[sound_category]:-''}"
-  
+  local strategy_name="${config[strategy_name]:-''}"
+
   #echo "DEBUG: RECONSTRUCTED contents: ${listed_elements[@]}" >&2
 
   local fzf_args=(
@@ -177,84 +182,94 @@ open_fzf_menu() {
         python3 -m src.main set_favourite "False" "${sound_id}" &
       )+refresh-preview')
 
+    if [[ -n "$strategy_name" ]]; then
+      # strategy=$(cat "./src/soundplay-strategies/${strategy_name}.sh")
+      # cat ./src/soundplay-strategies/${strategy_name}.sh
+
+      fzf_args+=(--bind 'focus:execute(
+          sound_id=$(echo {} | cut -d"|" -f1)
+          source "./src/soundplay-strategies/'"${strategy_name}"'.sh"
+          execute_strategy "$sound_id"
+        )')
+    fi
+
     # Cant separate all those parts, fzf can only have one focus:execute binding
     # These mpv process PID gymnastics were necessary to neatly kill the process in background
     # So that the fzf window doesnt blick unpleasantly when the main process is blocked
-    fzf_args+=(--bind 'focus:execute(
-        
-         # 1. INIT FOCUS
-        if [[ -f "${CURRENT_MPV_PROCESS_PID_FILE}" ]]; then
-          last_pid=$( cat "${CURRENT_MPV_PROCESS_PID_FILE}" 2>/dev/null )
-          if [[ -n "${last_pid}" ]] && kill -0 "${last_pid}" 2>/dev/null; then
-            ( kill "${last_pid}" 2>/dev/null ) &
-          fi
-        fi
-
-        sound_id=$(echo {} | cut -d"|" -f1)
-        echo "$sound_id" > "${CURRENT_FOCUSED_SONG_ID}"
-
-        # 2. MARK WAS LISTENED
-        (
-          sleep 1
-        
-          sound_id=$(echo {} | cut -d"|" -f1)
-          focused_song_id=$(cat "${CURRENT_FOCUSED_SONG_ID}")
-
-          if [[ "${focused_song_id}" == "${sound_id}" ]]; then
-            python3 -m src.main set_was_listened "${sound_id}"
-          fi
-        ) &
-
-        # 3. SOUND AUTOPLAY
-        (
-          sleep 0.35
-          
-          sound_id=$(echo {} | cut -d"|" -f1)
-          focused_song_id=$(cat "${CURRENT_FOCUSED_SONG_ID}")
-          filepath="${BBC_SOUNDS_CACHE_DIR}"/'"${sound_category}"'/"${sound_id}"
-
-          if [[ "${focused_song_id}" != "${sound_id}" ]]; then
-            exit 0
-          fi
-
-          if [[ -f "${CURRENT_MPV_PROCESS_PID_FILE}" ]]; then
-            final_last_pid=$( cat "${CURRENT_MPV_PROCESS_PID_FILE}" 2>/dev/null )
-            if [[ -n "${final_last_pid}" ]] && kill -0 "${final_last_pid}" 2>/dev/null; then
-              kill "${last_pid}" 2>/dev/null; 
-              sleep 0.05
-            fi
-          fi
-
-          if [[ -f "${filepath}.mp3" ]] && [[ ! -f "${filepath}.mp3.tmp" ]]; then
-
-            mpv --no-video --no-terminal --loop=inf --title="${BBC_MPV_TAG}" "${filepath}.mp3" &
-
-            echo "$!" > "${CURRENT_MPV_PROCESS_PID_FILE}" || {
-              python3 -m src.main log "error" "Could not write MPV PID at ${CURRENT_MPV_PROCESS_PID_FILE}."
-            }
-
-          else
-
-            python3 -m src.main bbc_download_preview_sound "${sound_id}" '"${sound_category}"' &
-            (
-
-              while [[ -f "${filepath}.mp3.tmp" ]] || [[ ! -f "${filepath}.mp3" ]]; do
-                sleep 0.5
-              done
-
-              current_focus_after_dl=$(cat "${CURRENT_FOCUSED_SONG_ID}" 2>/dev/null)
-
-              if [[ "${current_focus_after_dl}" == "${sound_id}" ]]; then
-                mpv --no-video --no-terminal --loop=inf --title="${BBC_MPV_TAG}" "${filepath}.mp3" &
-                echo "$!" > "${CURRENT_MPV_PROCESS_PID_FILE}"
-              fi
-
-             ) &
-
-            fi
-        ) & 
-      )')
-
+    # fzf_args+=(--bind 'focus:execute(
+    #
+    #     # 1. INIT FOCUS
+    #     if [[ -f "${CURRENT_MPV_PROCESS_PID_FILE}" ]]; then
+    #
+    #       last_pid=$( cat "${CURRENT_MPV_PROCESS_PID_FILE}" 2>/dev/null )
+    #       if [[ -n "${last_pid}" ]] && kill -0 "${last_pid}" 2>/dev/null; then
+    #         ( kill "${last_pid}" 2>/dev/null ) &
+    #       fi
+    #
+    #     fi
+    #
+    #     sound_id=$(echo {} | cut -d"|" -f1)
+    #     echo "$sound_id" > "${CURRENT_FOCUSED_SONG_ID}"
+    #
+    #     # 2. MARK WAS LISTENED
+    #     (
+    #       sleep 1
+    #
+    #       sound_id=$(echo {} | cut -d"|" -f1)
+    #       focused_song_id=$(cat "${CURRENT_FOCUSED_SONG_ID}")
+    #
+    #       if [[ "${focused_song_id}" == "${sound_id}" ]]; then
+    #         python3 -m src.main set_was_listened "${sound_id}"
+    #       fi
+    #     ) &
+    #
+    #     # 3. SOUND AUTOPLAY AND DOWNLOAD
+    #     (
+    #       sleep 0.35
+    #
+    #       sound_id=$(echo {} | cut -d"|" -f1)
+    #       focused_song_id=$(cat "${CURRENT_FOCUSED_SONG_ID}")
+    #       filepath="${BBC_SOUNDS_CACHE_DIR}"/'"${sound_category}"'/"${sound_id}"
+    #
+    #       if [[ "${focused_song_id}" != "${sound_id}" ]]; then
+    #         exit 0
+    #       fi
+    #
+    #       if [[ -f "${CURRENT_MPV_PROCESS_PID_FILE}" ]]; then
+    #         final_last_pid=$( cat "${CURRENT_MPV_PROCESS_PID_FILE}" 2>/dev/null )
+    #         if [[ -n "${final_last_pid}" ]] && kill -0 "${final_last_pid}" 2>/dev/null; then
+    #           kill "${last_pid}" 2>/dev/null;
+    #           sleep 0.05
+    #         fi
+    #       fi
+    #
+    #       if [[ -f "${filepath}.mp3" ]] && [[ ! -f "${filepath}.mp3.tmp" ]]; then
+    #
+    #         mpv --no-video --no-terminal --loop=inf --title="${BBC_MPV_TAG}" "${filepath}.mp3" &
+    #         echo "$!" > "${CURRENT_MPV_PROCESS_PID_FILE}" || {
+    #           python3 -m src.main log "error" "Could not write MPV PID at ${CURRENT_MPV_PROCESS_PID_FILE}."
+    #         }
+    #
+    #       else
+    #
+    #         python3 -m src.main bbc_download_preview_sound "${sound_id}" '"${sound_category}"' &
+    #         (
+    #           while [[ -f "${filepath}.mp3.tmp" ]] || [[ ! -f "${filepath}.mp3" ]]; do
+    #             sleep 0.5
+    #           done
+    #
+    #           current_focus_after_dl=$(cat "${CURRENT_FOCUSED_SONG_ID}" 2>/dev/null)
+    #
+    #           if [[ "${current_focus_after_dl}" == "${sound_id}" ]]; then
+    #             mpv --no-video --no-terminal --loop=inf --title="${BBC_MPV_TAG}" "${filepath}.mp3" &
+    #             echo "$!" > "${CURRENT_MPV_PROCESS_PID_FILE}"
+    #           fi
+    #         ) &
+    #
+    #       fi
+    #     ) &
+    #   )')
+    #
     # try with below which uses " and explicit escaping
     # when problem in bash or mac
     # fzf_args+=(--bind "f2:execute(
@@ -280,7 +295,7 @@ open_fzf_menu() {
       fi
     '
   fi
-    
+
   fzf_args+=(--preview "$preview_content")
 
   # OK, SO.
@@ -296,7 +311,7 @@ open_fzf_menu() {
   local selection=$(echo "$fzf_input" | fzf "${fzf_args[@]}")
 
   echo $selection
-} 
+}
 
 open_bbc_categories_menu() {
 
@@ -364,14 +379,52 @@ open_bbc_sounds_list() {
     [with_nth]='5,2'
     [sample_list]=true
     [sound_category]="${category_name}"
+    [strategy_name]="bbc_category_strategy"
   )
 
   open_fzf_menu 'bbc_sound_list_config' 1>/dev/null
-  last_pid=$( cat "${CURRENT_MPV_PROCESS_PID_FILE}" )
+  last_pid=$(cat "${CURRENT_MPV_PROCESS_PID_FILE}")
   if [[ -n "${last_pid}" ]] && kill -0 "${last_pid}" 2>/dev/null; then
-    ( kill "${last_pid}" 2>/dev/null ) &
+    (kill "${last_pid}" 2>/dev/null) &
   fi
   open_bbc_categories_menu
+}
+
+open_show_favourites() {
+
+  echo "📖 Loading BBC sounds list for category ${category_name}"
+  local bbc_sounds=$(python3 -m src.main bbc_get_sounds_data "${category_name}" "${category_size}")
+  declare -A bbc_sound_list_config=(
+    [data]='bbc_sounds'
+    [use_multi]=true
+    [preview_content]='
+      id=$(echo {} | cut -d"|" -f1)
+      description=$(echo {} | cut -d"|" -f2)
+      original_favourite=$(echo {} | cut -d"|" -f4)
+      echo " " # UMMMM, A LITTLE HACK cos i didnt figue out what causes the first echo to be sometimes printed twice
+      echo "\e[0;97mID: \e[1;37m$id"
+      echo "\e[0;97mDescription: \e[1;32m$description"
+      echo ""
+      
+      fav=$(python3 -m src.main is_favourite "$id")
+      if [[ "$fav" == "True" ]]; then
+        echo "\e[1;37mFAVORIT \e[5m⭐"
+      fi
+      #echo $original_favourite
+      
+      echo "\e[0;97m"
+      echo "Comment: No I do not know how to get rid of the trailing | sign <3"
+      '
+    [delimiter]='|'
+    [info_label]='Info'
+    [info_content]='[Arrows] Navigate [Enter] Confirm selected category.'
+    [list_label]="BBC Sound Effects for ${category_name} category"
+    [preview_label]='Category Info'
+    [with_nth]='5,2'
+    [sample_list]=true
+    [sound_category]="${category_name}"
+  )
+  open_fzf_menu 'bbc_sound_list_config' 1>/dev/null
 }
 
 open_main_menu() {
@@ -387,7 +440,7 @@ open_main_menu() {
     "$menu_option_3"
     "$menu_option_4"
   )
-  
+
   declare -A menu_config=(
     [data]='menu_elements'
     [use_multi]=false
@@ -403,27 +456,25 @@ open_main_menu() {
   # echo "DEBUG: Array contents: ${menu_elements[@]}" >&2
 
   local selected=$(open_fzf_menu 'menu_config')
-  
+
   case "${selected}" in
-    "$menu_option_1")
-      open_bbc_categories_menu 
-      ;;
-    "$menu_option_4")
-      echo "Goodbaiii 🐱"
-      ;;
-    *)
-      ;;
-   esac
+  "$menu_option_1")
+    open_bbc_categories_menu
+    ;;
+  "$menu_option_4")
+    echo "Goodbaiii 🐱"
+    ;;
+  *) ;;
+  esac
 }
 
-
-# echo '___  ___  ___                ________ ________  ___  _______   ________   ________  ___       
-# |\  \|\  \|\  \              |\  _____\\   __  \|\  \|\  ___ \ |\   ___  \|\   ___ \|\  \      
-# \ \  \\\  \ \  \             \ \  \__/\ \  \|\  \ \  \ \   __/|\ \  \\ \  \ \  \_|\ \ \  \     
-#  \ \   __  \ \  \  ___        \ \   __\\ \   _  _\ \  \ \  \_|/_\ \  \\ \  \ \  \ \\ \ \  \    
-#   \ \  \ \  \ \  \|\  \        \ \  \_| \ \  \\  \\ \  \ \  \_|\ \ \  \\ \  \ \  \_\\ \ \__\   
-#    \ \__\ \__\ \__\ \  \        \ \__\   \ \__\\ _\\ \__\ \_______\ \__\\ \__\ \_______\|__|   
-#     \|__|\|__|\|__|\/  /|        \|__|    \|__|\|__|\|__|\|_______|\|__| \|__|\|_______|   ___ 
+# echo '___  ___  ___                ________ ________  ___  _______   ________   ________  ___
+# |\  \|\  \|\  \              |\  _____\\   __  \|\  \|\  ___ \ |\   ___  \|\   ___ \|\  \
+# \ \  \\\  \ \  \             \ \  \__/\ \  \|\  \ \  \ \   __/|\ \  \\ \  \ \  \_|\ \ \  \
+#  \ \   __  \ \  \  ___        \ \   __\\ \   _  _\ \  \ \  \_|/_\ \  \\ \  \ \  \ \\ \ \  \
+#   \ \  \ \  \ \  \|\  \        \ \  \_| \ \  \\  \\ \  \ \  \_|\ \ \  \\ \  \ \  \_\\ \ \__\
+#    \ \__\ \__\ \__\ \  \        \ \__\   \ \__\\ _\\ \__\ \_______\ \__\\ \__\ \_______\|__|
+#     \|__|\|__|\|__|\/  /|        \|__|    \|__|\|__|\|__|\|_______|\|__| \|__|\|_______|   ___
 #                  |\___/ /                                                                 |\__\
 #                  \|___|/                                                                  \|__|'
 #
@@ -436,7 +487,6 @@ open_main_menu() {
 #
 # read -e -p "download path: " download_dir
 # echo "selected download dir: $download_dir"
-
 
 clear_log_file
 check_fzf
