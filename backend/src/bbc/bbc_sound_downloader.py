@@ -29,7 +29,7 @@ class BBCSoundDownloader:
         subprocess.Popen([
             sys.executable, # TODO
             '-m',
-            'src.download_worker',
+            'backend.src.utils.download_worker',
             url,
             file_path
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
