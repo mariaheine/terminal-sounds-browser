@@ -257,8 +257,6 @@ open_bbc_categories_menu() {
     local category_name=$(echo "${category}" | cut -d' ' -f1)
     local category_size=$(echo "${category}" | cut -d' ' -f2)
     open_bbc_sounds_list "${category_name}" "${category_size}"
-  else
-    open_main_menu
   fi
 }
 
@@ -375,17 +373,19 @@ open_main_menu() {
   # echo "DEBUG: Passing array name: menu_elements" >&2
   # echo "DEBUG: Array contents: ${menu_elements[@]}" >&2
 
-  local selected=$(open_fzf_menu 'menu_config')
-
-  case "${selected}" in
-  "$menu_option_1")
-    open_bbc_categories_menu
-    ;;
-  "$menu_option_4")
-    echo "Goodbaiii 🐱"
-    ;;
-  *) ;;
-  esac
+  while true; do
+    local selected=$(open_fzf_menu 'menu_config')
+    case "${selected}" in
+    "$menu_option_1")
+      open_bbc_categories_menu
+      ;;
+    "$menu_option_4")
+      echo "Goodbaiii 🐱"
+      break
+      ;;
+    *) ;;
+    esac
+  done
 }
 
 # echo '___  ___  ___                ________ ________  ___  _______   ________   ________  ___
