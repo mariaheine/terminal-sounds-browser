@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 from typing import Tuple
-from src.logger import Logger
+from .logger import Logger
 
 class Database:
     def __init__(self, db_path: Path, verbose=False):

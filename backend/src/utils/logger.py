@@ -1,7 +1,7 @@
 from pathlib import Path
 from datetime import datetime
 from typing import List, Tuple
-from src.constants import LOGS_DIR, LOG_FILE_NAME
+from backend.src.constants import LOGS_DIR, LOG_FILE_NAME
 
 class Logger:
     def __init__(self):

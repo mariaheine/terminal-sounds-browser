@@ -2,7 +2,7 @@ import sys
 import argparse
 import requests
 from pathlib import Path
-from src.logger import Logger
+from .logger import Logger
 
 class DownloadWorker:
     def __init__(self, logger: Logger, url: str, file_path: Path):

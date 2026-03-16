@@ -4,11 +4,11 @@ import sys
 import argparse
 from pathlib import Path
 
-from src.logger import Logger
-from src.bbc_categories import BBCCategories
-from src.bbc_sounds_data import BBCSounds
-from src.bbc_sound_downloader import BBCSoundDownloader
-from src.constants import CACHE_DIR, SOUNDS_CACHE_DIR
+from backend.src.utils.logger import Logger
+from backend.src.constants import CACHE_DIR, SOUNDS_CACHE_DIR
+from .bbc_categories import BBCCategories
+from .bbc_sounds_data import BBCSounds
+from .bbc_sound_downloader import BBCSoundDownloader
 
 
 def main():

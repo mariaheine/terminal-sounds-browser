@@ -1,12 +1,11 @@
 import subprocess
 import sys
-from src.logger import Logger
-from src.constants import (
+from backend.src.utils.logger import Logger
+from backend.src.constants import (
     SOUNDS_CACHE_DIR,
     BBC_URL_MEDIA,
     BBC_MP3_ENDPOINT
 )
-
 
 class BBCSoundDownloader:
     def __init__(self):

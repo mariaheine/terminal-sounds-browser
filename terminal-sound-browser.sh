@@ -43,7 +43,7 @@ export BBC_MPV_TAG
 # PART 2. COMMON CONSTANTS
 
 readonly CONSTANTS=$(python3 -c "
-from src.constants import (
+from backend.src.constants import (
     VERSION,
     LOGS_DIR,
     LOG_FILE_NAME,
@@ -57,6 +57,7 @@ print(f'BBC_SOUNDS_CACHE_DIR={BBC_SOUNDS_CACHE_DIR}')
 
 # TODO
 while IFS= read -r line; do
+  echo $line
   export "$line"
 done <<<"$CONSTANTS"
 
@@ -120,10 +121,6 @@ check_fzf() {
 #    \/_/   \/____/ \/_/          \/_/\/_/\/_/\/____/\/_/\/_/\/___/
 #
 
-# load_soundplay_strategy() {
-#   local strategy = $(cat)
-# }
-
 open_fzf_menu() {
 
   local config_name="$1"
@@ -174,101 +171,22 @@ open_fzf_menu() {
 
     fzf_args+=(--bind 'right:execute(
         sound_id=$(echo {} | cut -d"|" -f1)
-        python3 -m src.main set_favourite "True" "${sound_id}" &
+        python3 -m backend.src.bbc.main set_favourite "True" "${sound_id}" &
       )+refresh-preview')
 
     fzf_args+=(--bind 'left:execute(
         sound_id=$(echo {} | cut -d"|" -f1)
-        python3 -m src.main set_favourite "False" "${sound_id}" &
+        python3 -m backend.src.bbc.main set_favourite "False" "${sound_id}" &
       )+refresh-preview')
 
     if [[ -n "$strategy_name" ]]; then
-      # strategy=$(cat "./src/soundplay-strategies/${strategy_name}.sh")
-      # cat ./src/soundplay-strategies/${strategy_name}.sh
-
       fzf_args+=(--bind 'focus:execute(
           sound_id=$(echo {} | cut -d"|" -f1)
-          source "./src/soundplay-strategies/'"${strategy_name}"'.sh"
+          source "./frontend/soundplay-strategies/'"${strategy_name}"'.sh"
           execute_strategy "$sound_id"
         )')
     fi
 
-    # Cant separate all those parts, fzf can only have one focus:execute binding
-    # These mpv process PID gymnastics were necessary to neatly kill the process in background
-    # So that the fzf window doesnt blick unpleasantly when the main process is blocked
-    # fzf_args+=(--bind 'focus:execute(
-    #
-    #     # 1. INIT FOCUS
-    #     if [[ -f "${CURRENT_MPV_PROCESS_PID_FILE}" ]]; then
-    #
-    #       last_pid=$( cat "${CURRENT_MPV_PROCESS_PID_FILE}" 2>/dev/null )
-    #       if [[ -n "${last_pid}" ]] && kill -0 "${last_pid}" 2>/dev/null; then
-    #         ( kill "${last_pid}" 2>/dev/null ) &
-    #       fi
-    #
-    #     fi
-    #
-    #     sound_id=$(echo {} | cut -d"|" -f1)
-    #     echo "$sound_id" > "${CURRENT_FOCUSED_SONG_ID}"
-    #
-    #     # 2. MARK WAS LISTENED
-    #     (
-    #       sleep 1
-    #
-    #       sound_id=$(echo {} | cut -d"|" -f1)
-    #       focused_song_id=$(cat "${CURRENT_FOCUSED_SONG_ID}")
-    #
-    #       if [[ "${focused_song_id}" == "${sound_id}" ]]; then
-    #         python3 -m src.main set_was_listened "${sound_id}"
-    #       fi
-    #     ) &
-    #
-    #     # 3. SOUND AUTOPLAY AND DOWNLOAD
-    #     (
-    #       sleep 0.35
-    #
-    #       sound_id=$(echo {} | cut -d"|" -f1)
-    #       focused_song_id=$(cat "${CURRENT_FOCUSED_SONG_ID}")
-    #       filepath="${BBC_SOUNDS_CACHE_DIR}"/'"${sound_category}"'/"${sound_id}"
-    #
-    #       if [[ "${focused_song_id}" != "${sound_id}" ]]; then
-    #         exit 0
-    #       fi
-    #
-    #       if [[ -f "${CURRENT_MPV_PROCESS_PID_FILE}" ]]; then
-    #         final_last_pid=$( cat "${CURRENT_MPV_PROCESS_PID_FILE}" 2>/dev/null )
-    #         if [[ -n "${final_last_pid}" ]] && kill -0 "${final_last_pid}" 2>/dev/null; then
-    #           kill "${last_pid}" 2>/dev/null;
-    #           sleep 0.05
-    #         fi
-    #       fi
-    #
-    #       if [[ -f "${filepath}.mp3" ]] && [[ ! -f "${filepath}.mp3.tmp" ]]; then
-    #
-    #         mpv --no-video --no-terminal --loop=inf --title="${BBC_MPV_TAG}" "${filepath}.mp3" &
-    #         echo "$!" > "${CURRENT_MPV_PROCESS_PID_FILE}" || {
-    #           python3 -m src.main log "error" "Could not write MPV PID at ${CURRENT_MPV_PROCESS_PID_FILE}."
-    #         }
-    #
-    #       else
-    #
-    #         python3 -m src.main bbc_download_preview_sound "${sound_id}" '"${sound_category}"' &
-    #         (
-    #           while [[ -f "${filepath}.mp3.tmp" ]] || [[ ! -f "${filepath}.mp3" ]]; do
-    #             sleep 0.5
-    #           done
-    #
-    #           current_focus_after_dl=$(cat "${CURRENT_FOCUSED_SONG_ID}" 2>/dev/null)
-    #
-    #           if [[ "${current_focus_after_dl}" == "${sound_id}" ]]; then
-    #             mpv --no-video --no-terminal --loop=inf --title="${BBC_MPV_TAG}" "${filepath}.mp3" &
-    #             echo "$!" > "${CURRENT_MPV_PROCESS_PID_FILE}"
-    #           fi
-    #         ) &
-    #
-    #       fi
-    #     ) &
-    #   )')
     #
     # try with below which uses " and explicit escaping
     # when problem in bash or mac
@@ -315,7 +233,7 @@ open_fzf_menu() {
 
 open_bbc_categories_menu() {
 
-  local bbc_categories=$(python3 -m src.main bbc_get_categories)
+  local bbc_categories=$(python3 -m backend.src.bbc.main bbc_get_categories)
 
   declare -A bbc_categories_config=(
     [data]='bbc_categories'
@@ -333,6 +251,8 @@ open_bbc_categories_menu() {
 
   local category=$(open_fzf_menu 'bbc_categories_config')
 
+  echo $category
+
   if [[ -n "${category}" ]]; then
     local category_name=$(echo "${category}" | cut -d' ' -f1)
     local category_size=$(echo "${category}" | cut -d' ' -f2)
@@ -348,7 +268,7 @@ open_bbc_sounds_list() {
   local category_size="${2}"
 
   echo "📖 Loading BBC sounds list for category ${category_name}"
-  local bbc_sounds=$(python3 -m src.main bbc_get_sounds_data "${category_name}" "${category_size}")
+  local bbc_sounds=$(python3 -m backend.src.bbc.main bbc_get_sounds_data "${category_name}" "${category_size}")
 
   declare -A bbc_sound_list_config=(
     [data]='bbc_sounds'
@@ -362,7 +282,7 @@ open_bbc_sounds_list() {
       echo "\e[0;97mDescription: \e[1;32m$description"
       echo ""
       
-      fav=$(python3 -m src.main is_favourite "$id")
+      fav=$(python3 -m backend.src.bbc.main is_favourite "$id")
       if [[ "$fav" == "True" ]]; then
         echo "\e[1;37mFAVORIT \e[5m⭐"
       fi
@@ -393,7 +313,7 @@ open_bbc_sounds_list() {
 open_show_favourites() {
 
   echo "📖 Loading BBC sounds list for category ${category_name}"
-  local bbc_sounds=$(python3 -m src.main bbc_get_sounds_data "${category_name}" "${category_size}")
+  local bbc_sounds=$(python3 -m backend.src.bbc.main bbc_get_sounds_data "${category_name}" "${category_size}")
   declare -A bbc_sound_list_config=(
     [data]='bbc_sounds'
     [use_multi]=true
@@ -406,7 +326,7 @@ open_show_favourites() {
       echo "\e[0;97mDescription: \e[1;32m$description"
       echo ""
       
-      fav=$(python3 -m src.main is_favourite "$id")
+      fav=$(python3 -m backend.src.bbc.main is_favourite "$id")
       if [[ "$fav" == "True" ]]; then
         echo "\e[1;37mFAVORIT \e[5m⭐"
       fi
