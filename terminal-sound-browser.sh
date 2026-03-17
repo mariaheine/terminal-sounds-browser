@@ -181,11 +181,33 @@ open_fzf_menu() {
       )+refresh-preview')
 
     if [[ -n "$strategy_name" ]]; then
+
+      # This sleep and check is to prevent unnecessary sourcing and strategy execution when
+      # > fast scrolling down/up the sample list.
+      # Sadly the glitch in fzf is persistent even after these measures.
+      # An empty focus:execute() method already causes the glitch, so it seems beyond
+      # > my capacity to fix it.
+      # Only entirely disabling the focus:execute() method gets rid of the problem, but
+      # > this project hangs around the possibility to perform actions on focus.
+      # Unless im mistaken the problem is on the fzf side. Would be happy to be proven wrong,
+      # > because this glitch annoys me as hell, I want to fast scroll s m o o t h .
+
+      # fzf_args+=(--bind 'focus:execute()') # This also causes the glitch on fast scroll
       fzf_args+=(--bind 'focus:execute(
-          sound_id=$(echo {} | cut -d"|" -f1)
+        sound_id=$(echo {} | cut -d"|" -f1)
+        echo "$sound_id" >"${CURRENT_FOCUSED_SONG_ID}"
+        (
+
+          sleep 0.1
+          focused_song_id=$(cat "${CURRENT_FOCUSED_SONG_ID}")
+          if [[ "${focused_song_id}" != "${sound_id}" ]]; then
+            exit 0
+          fi
+
           source "./src/frontend/soundplay-strategies/'"${strategy_name}"'.sh"
           execute_strategy "$sound_id"
-        )')
+        ) &
+     )')
     fi
 
     #
