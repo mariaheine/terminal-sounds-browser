@@ -13,13 +13,11 @@ execute_strategy() {
 
   sound_id="$1"
   echo "$sound_id" >"${CURRENT_FOCUSED_SONG_ID}"
-  python3 -m backend.src.utils.logger "debug" "MEOW"
 
   # 2. MARK WAS LISTENED
   (
     sleep 1
 
-    # sound_id=$(echo {} | cut -d"|" -f1)
     focused_song_id=$(cat "${CURRENT_FOCUSED_SONG_ID}")
 
     if [[ "${focused_song_id}" == "${sound_id}" ]]; then
@@ -31,7 +29,6 @@ execute_strategy() {
   (
     sleep 0.35
 
-    # sound_id=$(echo {} | cut -d"|" -f1)
     focused_song_id=$(cat "${CURRENT_FOCUSED_SONG_ID}")
 
     if [[ "${focused_song_id}" != "${sound_id}" ]]; then

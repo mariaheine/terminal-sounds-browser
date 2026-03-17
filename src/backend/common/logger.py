@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 from typing import List, Tuple
-from backend.src.constants import LOGS_DIR, LOG_FILE_NAME
+from src.backend.constants import LOGS_DIR, LOG_FILE_NAME
 
 class Logger:
     def __init__(self):
@@ -37,6 +37,7 @@ class Logger:
 
 if __name__ == "main":
     logger = Logger()
+    logger.error("derp")
     parser = argparse.ArgumentParser("Logger Parser")
     parser.add_argument("level")
     parser.add_argument("message")

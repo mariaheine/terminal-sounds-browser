@@ -1,7 +1,7 @@
 import subprocess
 import sys
-from backend.src.utils.logger import Logger
-from backend.src.constants import (
+from src.backend.common.logger import Logger
+from src.backend.constants import (
     SOUNDS_CACHE_DIR,
     BBC_URL_MEDIA,
     BBC_MP3_ENDPOINT
@@ -29,7 +29,7 @@ class BBCSoundDownloader:
         subprocess.Popen([
             sys.executable, # TODO
             '-m',
-            'backend.src.utils.download_worker',
+            'src.backend.common.download_worker',
             url,
             file_path
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

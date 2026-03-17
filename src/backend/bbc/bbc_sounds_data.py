@@ -5,9 +5,9 @@ import sqlite3
 import json
 from pathlib import Path
 from typing import Dict
-from backend.src.utils.logger import Logger
-from backend.src.utils.database import Database
-from backend.src.constants import HEADERS, BBC_DATABASE, BBC_URL_API, BBC_API_SEARCH_ENDPOINT
+from src.backend.common.logger import Logger
+from src.backend.common.database import Database
+from src.backend.constants import HEADERS, BBC_DATABASE, BBC_URL_API, BBC_API_SEARCH_ENDPOINT
 
 class BBCSounds:
     def __init__(self):

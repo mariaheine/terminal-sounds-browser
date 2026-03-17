@@ -14,9 +14,9 @@ import requests
 import sys
 import sqlite3
 from pathlib import Path
-from backend.src.utils.database import Database
-from backend.src.utils.logger import Logger
-from backend.src.constants import HEADERS, BBC_DATABASE, BBC_URL_API, BBC_API_CATEGORY_AGGREGATIONS_ENDPOINT
+from src.backend.common.database import Database
+from src.backend.common.logger import Logger
+from src.backend.constants import HEADERS, BBC_DATABASE, BBC_URL_API, BBC_API_CATEGORY_AGGREGATIONS_ENDPOINT
 
 class BBCCategories:
     def __init__(self):

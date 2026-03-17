@@ -43,7 +43,7 @@ export BBC_MPV_TAG
 # PART 2. COMMON CONSTANTS
 
 readonly CONSTANTS=$(python3 -c "
-from backend.src.constants import (
+from src.backend.constants import (
     VERSION,
     LOGS_DIR,
     LOG_FILE_NAME,
@@ -140,6 +140,7 @@ open_fzf_menu() {
   local strategy_name="${config[strategy_name]:-''}"
 
   #echo "DEBUG: RECONSTRUCTED contents: ${listed_elements[@]}" >&2
+  python3 -m src.backend.common.logger "error" "meow"
 
   local fzf_args=(
     --style full
@@ -171,18 +172,18 @@ open_fzf_menu() {
 
     fzf_args+=(--bind 'right:execute(
         sound_id=$(echo {} | cut -d"|" -f1)
-        python3 -m backend.src.bbc.main set_favourite "True" "${sound_id}" &
+        python3 -m src.backend.bbc.main set_favourite "True" "${sound_id}" &
       )+refresh-preview')
 
     fzf_args+=(--bind 'left:execute(
         sound_id=$(echo {} | cut -d"|" -f1)
-        python3 -m backend.src.bbc.main set_favourite "False" "${sound_id}" &
+        python3 -m src.backend.bbc.main set_favourite "False" "${sound_id}" &
       )+refresh-preview')
 
     if [[ -n "$strategy_name" ]]; then
       fzf_args+=(--bind 'focus:execute(
           sound_id=$(echo {} | cut -d"|" -f1)
-          source "./frontend/soundplay-strategies/'"${strategy_name}"'.sh"
+          source "./src/frontend/soundplay-strategies/'"${strategy_name}"'.sh"
           execute_strategy "$sound_id"
         )')
     fi
@@ -233,7 +234,7 @@ open_fzf_menu() {
 
 open_bbc_categories_menu() {
 
-  local bbc_categories=$(python3 -m backend.src.bbc.main bbc_get_categories)
+  local bbc_categories=$(python3 -m src.backend.bbc.main bbc_get_categories)
 
   declare -A bbc_categories_config=(
     [data]='bbc_categories'
@@ -266,7 +267,7 @@ open_bbc_sounds_list() {
   local category_size="${2}"
 
   echo "📖 Loading BBC sounds list for category ${category_name}"
-  local bbc_sounds=$(python3 -m backend.src.bbc.main bbc_get_sounds_data "${category_name}" "${category_size}")
+  local bbc_sounds=$(python3 -m src.backend.bbc.main bbc_get_sounds_data "${category_name}" "${category_size}")
 
   declare -A bbc_sound_list_config=(
     [data]='bbc_sounds'
@@ -280,7 +281,7 @@ open_bbc_sounds_list() {
       echo "\e[0;97mDescription: \e[1;32m$description"
       echo ""
       
-      fav=$(python3 -m backend.src.bbc.main is_favourite "$id")
+      fav=$(python3 -m src.backend.bbc.main is_favourite "$id")
       if [[ "$fav" == "True" ]]; then
         echo "\e[1;37mFAVORIT \e[5m⭐"
       fi
@@ -311,7 +312,7 @@ open_bbc_sounds_list() {
 open_show_favourites() {
 
   echo "📖 Loading BBC sounds list for category ${category_name}"
-  local bbc_sounds=$(python3 -m backend.src.bbc.main bbc_get_sounds_data "${category_name}" "${category_size}")
+  local bbc_sounds=$(python3 -m src.backend.bbc.main bbc_get_sounds_data "${category_name}" "${category_size}")
   declare -A bbc_sound_list_config=(
     [data]='bbc_sounds'
     [use_multi]=true
@@ -324,7 +325,7 @@ open_show_favourites() {
       echo "\e[0;97mDescription: \e[1;32m$description"
       echo ""
       
-      fav=$(python3 -m backend.src.bbc.main is_favourite "$id")
+      fav=$(python3 -m src.backend.bbc.main is_favourite "$id")
       if [[ "$fav" == "True" ]]; then
         echo "\e[1;37mFAVORIT \e[5m⭐"
       fi

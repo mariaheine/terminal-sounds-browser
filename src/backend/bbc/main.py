@@ -4,8 +4,8 @@ import sys
 import argparse
 from pathlib import Path
 
-from backend.src.utils.logger import Logger
-from backend.src.constants import CACHE_DIR, SOUNDS_CACHE_DIR
+from src.backend.common.logger import Logger
+from src.backend.constants import CACHE_DIR, SOUNDS_CACHE_DIR
 from .bbc_categories import BBCCategories
 from .bbc_sounds_data import BBCSounds
 from .bbc_sound_downloader import BBCSoundDownloader
@@ -36,10 +36,6 @@ def main():
 
     set_was_listened_parser = subparsers.add_parser("set_was_listened")
     set_was_listened_parser.add_argument("sound_id")
-
-    log = subparsers.add_parser("log")
-    log.add_argument("level")
-    log.add_argument("message")
 
     args = parser.parse_args()
 
@@ -83,18 +79,6 @@ def main():
         sound_id = str(args.sound_id)
         logger.debug(f"set was listened for {sound_id}")
 
-    elif args.command == "log":
-        level = args.level
-        message = args.message
-        if level == "info":
-            logger.info(message)
-        elif level == "debug":
-            logger.debug(message)
-        elif level == "error":
-            logger.error(message)
-        else:
-            logger.error(f"Unhandled log type: {level}")
-    
     else: 
         print(f"unknown command {args.command}")
 
