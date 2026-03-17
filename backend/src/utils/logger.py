@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 from datetime import datetime
 from typing import List, Tuple
@@ -33,3 +34,23 @@ class Logger:
         for row in rows:
             msg += f"{row}\n"
         self._write("[🧭 QUERY PLAN]", msg)
+
+if __name__ == "main":
+    logger = Logger()
+    parser = argparse.ArgumentParser("Logger Parser")
+    parser.add_argument("level")
+    parser.add_argument("message")
+
+    args = parser.parse_args()
+    level = args.level
+    message = args.message
+
+    if level == "info":
+        logger.info(message)
+    elif level == "debug":
+        logger.debug(message)
+    elif level == "error":
+        logger.error(message)
+    else:
+        logger.error(f"Unhandled log type: {level}")
+    

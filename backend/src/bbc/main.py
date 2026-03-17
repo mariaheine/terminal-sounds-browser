@@ -75,7 +75,6 @@ def main():
         print(is_favourite)
 
     elif args.command == "bbc_download_preview_sound":
-        logger.debug("Did we even get here")
         bbc_downloader = BBCSoundDownloader()
         bbc_downloader.download_preview_sound(args.category, args.sound_id)
 

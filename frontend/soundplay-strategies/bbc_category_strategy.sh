@@ -13,6 +13,7 @@ execute_strategy() {
 
   sound_id="$1"
   echo "$sound_id" >"${CURRENT_FOCUSED_SONG_ID}"
+  python3 -m backend.src.utils.logger "debug" "MEOW"
 
   # 2. MARK WAS LISTENED
   (
@@ -49,7 +50,6 @@ execute_strategy() {
 
     if [[ -f "${filepath}.mp3" ]] && [[ ! -f "${filepath}.mp3.tmp" ]]; then
 
-      python3 -m backend.src.bbc.main log "debug" "here"
       mpv --no-video --no-terminal --loop=inf --title="${BBC_MPV_TAG}" "${filepath}.mp3" &
       echo "$!" >"${CURRENT_MPV_PROCESS_PID_FILE}" || {
         python3 -m frontend.src.main log "error" "Could not write MPV PID at ${CURRENT_MPV_PROCESS_PID_FILE}."
@@ -57,7 +57,6 @@ execute_strategy() {
 
     else
 
-      python3 -m backend.src.bbc.main log "debug" "there"
       python3 -m backend.src.bbc.main bbc_download_preview_sound "${sound_id}" '"${sound_category}"' &
       (
         while [[ -f "${filepath}.mp3.tmp" ]] || [[ ! -f "${filepath}.mp3" ]]; do
