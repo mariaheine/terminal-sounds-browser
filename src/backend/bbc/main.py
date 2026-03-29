@@ -5,6 +5,7 @@ import argparse
 from pathlib import Path
 
 from src.backend.common.logger import Logger
+from src.backend.common.config_manager import ConfigManager
 from src.backend.constants import CACHE_DIR, SOUNDS_CACHE_DIR
 from .bbc_categories import BBCCategories
 from .bbc_sounds_data import BBCSounds
@@ -39,6 +40,18 @@ def main():
 
     get_preview_size_parser = subparsers.add_parser("get_preview_size")
     get_preview_size_parser.add_argument("sound_id")
+
+    download_favourite_wav_parser = subparsers.add_parser("download_favourite_wav")
+    download_favourite_wav_parser.add_argument("sound_id")
+
+    subparsers.add_parser("is_config_initialized")
+
+    get_config_value_parser = subparsers.add_parser("get_config_value")
+    get_config_value_parser.add_argument("section")
+    get_config_value_parser.add_argument("key")
+
+    set_favourites_path_parser = subparsers.add_parser("set_favourites_path")
+    set_favourites_path_parser.add_argument("path")
 
     args = parser.parse_args()
 
@@ -86,6 +99,22 @@ def main():
         bbc_sounds = BBCSounds()
         size = bbc_sounds.get_preview_size(str(args.sound_id))
         print(size)
+
+    elif args.command == "download_favourite_wav":
+        bbc_downloader = BBCSoundDownloader()
+        bbc_downloader.download_favourite_wav(str(args.sound_id))
+
+    elif args.command == "is_config_initialized":
+        config = ConfigManager()
+        print(config.is_initialized())
+
+    elif args.command == "get_config_value":
+        config = ConfigManager()
+        print(config.get(args.section, args.key) or "")
+
+    elif args.command == "set_favourites_path":
+        config = ConfigManager()
+        config.set_favourites_path(args.path)
 
     else: 
         print(f"unknown command {args.command}")

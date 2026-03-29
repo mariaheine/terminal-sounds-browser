@@ -1,10 +1,12 @@
 import subprocess
 import sys
 from src.backend.common.logger import Logger
+from src.backend.common.config_manager import ConfigManager
 from src.backend.constants import (
     SOUNDS_CACHE_DIR,
     BBC_URL_MEDIA,
-    BBC_MP3_ENDPOINT
+    BBC_MP3_ENDPOINT,
+    BBC_WAV_ENDPOINT,
 )
 
 class BBCSoundDownloader:
@@ -32,4 +34,29 @@ class BBCSoundDownloader:
             'src.backend.common.download_worker',
             url,
             file_path
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def download_favourite_wav(self, sound_id: str, filename: str):
+
+        if not sound_id:
+            self.logger.error("Called download_favourite_wav for a null or empty sound_id.")
+            return False
+
+        config = ConfigManager()
+        dest_dir = config.get("downloads", "favourites_path")
+
+        if not dest_dir:
+            self.logger.error("Favourites download path is not configured.")
+            return False
+
+        url = f"{BBC_URL_MEDIA}{BBC_WAV_ENDPOINT}{sound_id}.wav.zip"
+
+        subprocess.Popen([
+            sys.executable,
+            '-m',
+            'src.backend.bbc.wav_download_worker',
+            url,
+            dest_dir,
+            sound_id,
+            filename,
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

@@ -174,6 +174,7 @@ open_fzf_menu() {
     fzf_args+=(--bind 'right:execute(
         sound_id=$(echo {} | cut -d"|" -f1)
         python3 -m src.backend.bbc.main set_favourite "True" "${sound_id}" &
+        python3 -m src.backend.bbc.main download_favourite_wav "${sound_id}" &
       )+refresh-preview')
 
     fzf_args+=(--bind 'left:execute(
@@ -453,7 +454,31 @@ open_main_menu() {
 # read -e -p "download path: " download_dir
 # echo "selected download dir: $download_dir"
 
+setup_config() {
+  if [[ $(python3 -m src.backend.bbc.main is_config_initialized) == "True" ]]; then
+    return 0
+  fi
+
+  echo ""
+  echo "👋 First run! Let's set things up."
+  echo ""
+  echo "Where should downloaded favourites be saved?"
+  echo "(Tab to autocomplete, will be created if it doesn't exist)"
+  echo ""
+  read -e -p "📁 Favourites path: " favourites_path
+
+  if [[ -z "$favourites_path" ]]; then
+    echo "🔥 No path provided, exiting."
+    exit 1
+  fi
+
+  python3 -m src.backend.bbc.main set_favourites_path "$favourites_path"
+  echo "✅ Config saved."
+  echo ""
+}
+
 clear_log_file
 check_fzf
+setup_config
 open_main_menu
 deactivate
