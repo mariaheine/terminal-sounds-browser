@@ -19,6 +19,7 @@ set -euo pipefail
 
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo "🗿 root: $SCRIPT_DIR"
+cd "$SCRIPT_DIR"
 
 source "$SCRIPT_DIR/.venv/bin/activate"
 
