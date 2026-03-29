@@ -37,6 +37,9 @@ def main():
     set_was_listened_parser = subparsers.add_parser("set_was_listened")
     set_was_listened_parser.add_argument("sound_id")
 
+    get_preview_size_parser = subparsers.add_parser("get_preview_size")
+    get_preview_size_parser.add_argument("sound_id")
+
     args = parser.parse_args()
 
     logger = Logger()
@@ -78,6 +81,11 @@ def main():
         bbc_sounds = BBCSounds()
         sound_id = str(args.sound_id)
         logger.debug(f"set was listened for {sound_id}")
+
+    elif args.command == "get_preview_size":
+        bbc_sounds = BBCSounds()
+        size = bbc_sounds.get_preview_size(str(args.sound_id))
+        print(size)
 
     else: 
         print(f"unknown command {args.command}")

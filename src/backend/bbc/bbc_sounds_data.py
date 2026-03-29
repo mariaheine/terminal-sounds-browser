@@ -11,6 +11,8 @@ from src.backend.constants import (
     HEADERS,
     BBC_DATABASE,
     BBC_URL_API,
+    BBC_URL_MEDIA,
+    BBC_MP3_ENDPOINT,
     BBC_API_SEARCH_ENDPOINT,
 )
 
@@ -104,6 +106,7 @@ class BBCSounds:
                 duration REAL NOT NULL,
                 favourite BOOLEAN DEFAULT 0,
                 was_listened BOOLEAN DEFAULT 0,
+                mp3_size REAL,
                 last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """
@@ -116,6 +119,15 @@ class BBCSounds:
             query = """
                 ALTER TABLE sounds
                 ADD COLUMN was_listened BOOLEAN DEFAULT 0
+            """
+            self.database.execute(query)
+            self.database.commit()
+
+        if not self.database.column_exists("sounds", "mp3_size"):
+            self.logger.debug("Added mp3_size column.")
+            query = """
+                ALTER TABLE sounds
+                ADD COLUMN mp3_size REAL
             """
             self.database.execute(query)
             self.database.commit()
@@ -352,6 +364,40 @@ class BBCSounds:
             )
         # list_of_sounds = [f"{row[0]}|{row[1]}|{row[2]}" for row in sounds_data]
         return list_of_sounds
+
+    def get_preview_size(self, sound_id: str) -> float:
+        """Returns the mp3 preview size in MB. Caches in DB. Returns -1 if unknown."""
+        if not sound_id:
+            return -1
+
+        if not self.database.column_exists("sounds", "mp3_size"):
+            self.database.execute("ALTER TABLE sounds ADD COLUMN mp3_size REAL")
+            self.database.commit()
+
+        if self.database.column_exists("sounds", "mp3_size"):
+            query = "SELECT mp3_size FROM sounds WHERE id = ?"
+            cursor = self.database.execute(query, (sound_id,))
+            row = cursor.fetchone()
+            if row and row[0] is not None:
+                return row[0]
+
+        url = f"{BBC_URL_MEDIA}{BBC_MP3_ENDPOINT}{sound_id}.mp3"
+        try:
+            response = requests.head(url, headers=HEADERS, timeout=5)
+            size_bytes = int(response.headers.get("Content-Length", -1))
+        except Exception:
+            self.logger.error(f"Failed to HEAD {url} for size check.")
+            return -1
+
+        if size_bytes < 0:
+            return -1
+
+        size_mb = round(size_bytes / (1024 * 1024), 2)
+        query = "UPDATE sounds SET mp3_size = ? WHERE id = ?"
+        self.database.execute(query, (size_mb, sound_id))
+        self.database.commit()
+
+        return size_mb
 
     def toggle_favourite(self, sound_id):
 

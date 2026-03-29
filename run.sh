@@ -146,7 +146,7 @@ open_fzf_menu() {
     --style full
     --border --padding 1,1
     --border-label "'° BBC Sound Effect Browser °'"
-    --input-label "'° FUZZZ °'"
+    --input-label "'° FUZZZ SEARCH °'"
     --list-label "'° ${list_label} °'"
     --header="$info_content"
     --header-label "'° ${info_label} °'"
@@ -204,23 +204,33 @@ open_fzf_menu() {
             exit 0
           fi
 
+          if [[ $( cat "$AUTO_MODE_FILE" ) == "true" ]]; then
+            mp3_size=$(python3 -m src.backend.bbc.main get_preview_size "$sound_id")
+            if (( $(echo "$mp3_size <= 50" | bc -l) )); then
+              source "./src/frontend/soundplay-strategies/'"${strategy_name}"'.sh"
+              execute_strategy "$sound_id"
+            fi
+          fi
+        ) &
+     )')
+
+      fzf_args+=(--bind 'ctrl-space:execute(
+        sound_id=$(echo {} | cut -d"|" -f1)
+        (
           source "./src/frontend/soundplay-strategies/'"${strategy_name}"'.sh"
           execute_strategy "$sound_id"
         ) &
-     )')
+      )+refresh-preview')
+
+      fzf_args+=(--bind 'ctrl-s:execute(
+        last_pid=$(cat "${CURRENT_MPV_PROCESS_PID_FILE}" 2>/dev/null)
+        if [[ -n "$last_pid" ]] && kill -0 "$last_pid" 2>/dev/null; then
+          kill "$last_pid" 2>/dev/null
+        fi
+      )+refresh-preview')
     fi
 
     #
-    # try with below which uses " and explicit escaping
-    # when problem in bash or mac
-    # fzf_args+=(--bind "f2:execute(
-    #   if [[ \$(cat $AUTO_MODE_FILE) == \"true\" ]]; then
-    #     echo false > $AUTO_MODE_FILE
-    #   else
-    #     echo true > $AUTO_MODE_FILE
-    #   fi
-    # )+refresh-preview")
-
     fzf_args+=(--bind 'f2:execute(
       if [[ $( cat "$AUTO_MODE_FILE" ) == "true" ]]; then
         echo false > "$AUTO_MODE_FILE"
@@ -230,9 +240,20 @@ open_fzf_menu() {
     )+refresh-preview')
 
     preview_content+=';
+      sound_id=$(echo {} | cut -d"|" -f1)
+      mp3_size=$(python3 -m src.backend.bbc.main get_preview_size "$sound_id")
+      echo ""
       if [[ $( cat "$AUTO_MODE_FILE" ) == "true" ]]; then
-        echo ""
-        echo "AUTO MODE IS ON"
+        if (( $(echo "$mp3_size > 50" | bc -l) )); then
+          echo "\e[1;33mAUTO MODE IS ON (skipped: file too large)"
+        else
+          echo "\e[1;32mAUTO MODE IS ON"
+        fi
+      else
+        echo "\e[1;31mAUTO MODE IS OFF"
+      fi
+      if (( $(echo "$mp3_size > 50" | bc -l) )); then
+        echo "\e[1;33mFile size: ${mp3_size} MB (threshold: 50 MB)"
       fi
     '
   fi
@@ -314,7 +335,7 @@ open_bbc_sounds_list() {
       '
     [delimiter]='|'
     [info_label]='Info'
-    [info_content]='[Arrows] Navigate [Enter] Confirm selected category.'
+    [info_content]='[F2] Toggle Autoplay [Ctrl+Space] Play sound [Ctrl+S] Stop sound'
     [list_label]="BBC Sound Effects for ${category_name} category"
     [preview_label]='Category Info'
     [with_nth]='5,2'
@@ -358,7 +379,7 @@ open_show_favourites() {
       '
     [delimiter]='|'
     [info_label]='Info'
-    [info_content]='[Arrows] Navigate [Enter] Confirm selected category.'
+    [info_content]=''
     [list_label]="BBC Sound Effects for ${category_name} category"
     [preview_label]='Category Info'
     [with_nth]='5,2'
